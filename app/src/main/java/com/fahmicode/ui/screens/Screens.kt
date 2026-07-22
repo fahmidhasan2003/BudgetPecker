@@ -3082,153 +3082,199 @@ fun CurrencyConverterContent(
         val amountD = amount.toDoubleOrNull() ?: 0.0
         val fromRate = rates[fromCurrency] ?: 1.0
         val toRate = rates[toCurrency] ?: 1.0
-        // Cross conversion: (Amount / FromRate) * ToRate
         (amountD / fromRate) * toRate
+    }
+
+    val onAction: (String) -> Unit = { action ->
+        when (action) {
+            "C" -> amount = "0"
+            "⌫" -> {
+                amount = if (amount.length <= 1) "0" else amount.dropLast(1)
+            }
+            "00" -> {
+                if (amount != "0") amount += "00"
+            }
+            "." -> {
+                if (!amount.contains(".")) amount += "."
+            }
+            else -> {
+                if (amount == "0") amount = action else amount += action
+            }
+        }
+    }
+
+    val commonCurrencies = listOf("USD", "BDT", "EUR", "GBP", "INR", "SAR", "AED", "CAD", "AUD", "JPY", "CNY", "SGD")
+    val getFullDisplay = { code: String ->
+        val name = when (code) {
+            "USD" -> "US Dollar"
+            "BDT" -> "Bangladeshi Taka"
+            "EUR" -> "Euro"
+            "GBP" -> "British Pound"
+            "INR" -> "Indian Rupee"
+            "SAR" -> "Saudi Riyal"
+            "AED" -> "UAE Dirham"
+            "CAD" -> "Canadian Dollar"
+            "AUD" -> "Australian Dollar"
+            "JPY" -> "Japanese Yen"
+            "CNY" -> "Chinese Yuan"
+            "SGD" -> "Singapore Dollar"
+            else -> ""
+        }
+        val symbol = getCurrencySymbol(code)
+        "$code - $name ($symbol)"
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.surface)
-            .padding(24.dp)
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Header
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
-                Text(
-                    "Currency Converter",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
-                )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(if (viewModel.isLiveRates.value) Color(0xFF4CAF50) else Color.Gray)
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        text = if (viewModel.isLiveRates.value) "Live Rates" else "Offline Rates",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
+            Text(
+                "Currency Converter",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+            )
             IconButton(onClick = onDismiss) {
                 Icon(Icons.Default.Close, contentDescription = "Close")
             }
         }
 
-        // Amount Input
-        OutlinedTextField(
-            value = amount,
-            onValueChange = { amount = it },
-            label = { Text("Amount") },
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            shape = RoundedCornerShape(16.dp),
-            leadingIcon = { Text(getCurrencySymbol(fromCurrency), fontWeight = FontWeight.Bold) }
+        // Display Section (Top Half)
+        Column(
+            modifier = Modifier.weight(0.35f),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Row 1 (From)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                var expanded by remember { mutableStateOf(false) }
+                Box {
+                    Row(
+                        modifier = Modifier.clickable { expanded = true }.padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(fromCurrency, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
+                        Icon(Icons.Default.ArrowDropDown, null)
+                    }
+                    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                        commonCurrencies.forEach { code ->
+                            DropdownMenuItem(
+                                text = { Text(getFullDisplay(code)) },
+                                onClick = { fromCurrency = code; expanded = false }
+                            )
+                        }
+                    }
+                }
+                Text(
+                    text = "${getCurrencySymbol(fromCurrency)} $amount",
+                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            // Row 2 (To)
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                var expanded by remember { mutableStateOf(false) }
+                Box {
+                    Row(
+                        modifier = Modifier.clickable { expanded = true }.padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(toCurrency, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
+                        Icon(Icons.Default.ArrowDropDown, null)
+                    }
+                    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                        commonCurrencies.forEach { code ->
+                            DropdownMenuItem(
+                                text = { Text(getFullDisplay(code)) },
+                                onClick = { toCurrency = code; expanded = false }
+                            )
+                        }
+                    }
+                }
+                Text(
+                    text = "${DecimalFormat("#,##,###.##").format(result)} ${getCurrencySymbol(toCurrency)}",
+                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.primary,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            // Rate Summary Subtext
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(top = 12.dp)
+            ) {
+                Box(
+                    modifier = Modifier.size(6.dp).clip(CircleShape).background(if (viewModel.isLiveRates.value) Color(0xFF4CAF50) else Color.Gray)
+                )
+                Spacer(Modifier.width(6.dp))
+                val rate = (rates[toCurrency] ?: 1.0) / (rates[fromCurrency] ?: 1.0)
+                Text(
+                    text = "1 $fromCurrency = ${DecimalFormat("#.###").format(rate)} $toCurrency • ${if (viewModel.isLiveRates.value) "Live Rates" else "Offline"}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
+            }
+        }
+
+        // Keypad Section (Bottom Half)
+        val buttons = listOf(
+            listOf("7", "8", "9", "C"),
+            listOf("4", "5", "6", "⌫"),
+            listOf("1", "2", "3", "."),
+            listOf("00", "0", "", "")
         )
 
-        // Selectors Row
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier.weight(0.65f).fillMaxWidth().padding(top = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            CurrencyPicker(
-                label = "From",
-                selected = fromCurrency,
-                onSelected = { fromCurrency = it },
-                rates = rates,
-                modifier = Modifier.weight(1f)
-            )
-
-            IconButton(
-                onClick = {
-                    val temp = fromCurrency
-                    fromCurrency = toCurrency
-                    toCurrency = temp
-                },
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(MaterialTheme.colorScheme.secondaryContainer, CircleShape)
-            ) {
-                Icon(Icons.Default.CurrencyExchange, contentDescription = "Swap", modifier = Modifier.size(20.dp))
-            }
-
-            CurrencyPicker(
-                label = "To",
-                selected = toCurrency,
-                onSelected = { toCurrency = it },
-                rates = rates,
-                modifier = Modifier.weight(1f)
-            )
-        }
-
-        // Result Card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-        ) {
-            Column(
-                modifier = Modifier.padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = "${amount.ifEmpty { "0" }} $fromCurrency =",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = "${DecimalFormat("#,##,###.##").format(result)} $toCurrency",
-                    style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.ExtraBold),
-                    color = MaterialTheme.colorScheme.primary,
-                    textAlign = TextAlign.Center
-                )
-                Text(
-                    text = if (viewModel.isLiveRates.value) "Live rates updated" else "Using offline fallback",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                )
-            }
-        }
-
-        // Quick Amount Buttons
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            val quickAmounts = listOf("10", "50", "100", "500")
-            quickAmounts.forEach { qAmount ->
-                OutlinedButton(
-                    onClick = { amount = qAmount },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
-                    contentPadding = PaddingValues(0.dp)
+            buttons.forEach { row ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("${getCurrencySymbol(fromCurrency)}$qAmount", style = MaterialTheme.typography.labelMedium)
+                    row.forEach { label ->
+                        if (label.isNotBlank()) {
+                            Card(
+                                modifier = Modifier.weight(1f).fillMaxHeight().clickable { onAction(label) },
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (label == "C") MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                )
+                            ) {
+                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    Text(
+                                        text = label,
+                                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Medium, fontSize = 24.sp),
+                                        color = if (label == "C") MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
+                        } else {
+                            Spacer(Modifier.weight(1f))
+                        }
+                    }
                 }
             }
-        }
-
-        if (viewModel.isLiveRates.value) {
-            Text(
-                "Last Updated: ${viewModel.lastRatesUpdate.value}",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                textAlign = TextAlign.Center
-            )
         }
     }
 }

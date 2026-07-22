@@ -1,38 +1,36 @@
-# Real-Time Currency Converter Walkthrough
+# Currency Converter UI Refinement Walkthrough
 
-I have implemented a comprehensive Currency Converter in BudgetPecker, featuring live exchange rates from an external API and a modern, responsive UI.
+I have updated the Currency Converter to match the Calculator overlay's proportions and improved its usability with a standard keypad and more descriptive labels.
 
 ## Changes Overview
 
 ### [app]
 
-#### [CurrencyApiService.kt](file:///H:/FAHMID/budgetpecker/app/src/main/java/com/fahmicode/data/network/CurrencyApiService.kt)
-- **Networking**: Integrated Retrofit with Moshi to fetch live exchange rates from `open.er-api.com`. This API provides USD-based rates that are updated regularly.
-
-#### [MainViewModel.kt](file:///H:/FAHMID/budgetpecker/app/src/main/java/com/fahmicode/ui/MainViewModel.kt)
-- **Live Updates**: Implemented `fetchLiveRates()` to fetch data on app launch.
-- **Reliability**: Added a fallback mechanism with static rates (for USD, BDT, EUR, GBP, etc.) to ensure the converter works even without an internet connection.
-- **State Management**: Created reactive states for rates, update timestamps, and UI visibility.
-
 #### [Screens.kt](file:///H:/FAHMID/budgetpecker/app/src/main/java/com/fahmicode/ui/screens/Screens.kt)
-- **`CurrencyConverterContent`**: A new, modern UI featuring:
-    - **Live Result**: Instant conversion as you type.
-    - **Currency Pickers**: Easy selection for "From" and "To" currencies.
-    - **Swap (↔️)**: Quick swap between selected currencies.
-    - **Status Indicator**: Visual badge showing if rates are "Live" or "Offline".
-    - **Formatted Display**: Large, easy-to-read converted values with symbols.
-
-#### [MainActivity.kt](file:///H:/FAHMID/budgetpecker/app/src/main/java/com/fahmicode/MainActivity.kt)
-- **Integration**: Connected the "Converter" option in the "More" menu to the new overlay dialog.
+- **Dialog Dimensions & Height**:
+    - Refactored `CurrencyConverterContent` to use a weighted layout (`Modifier.weight()`) for the display and keypad sections.
+    - This ensures the dialog fills the requested space and maintains a professional aspect ratio consistent with the Calculator overlay.
+- **Optimized Keypad**:
+    - Removed the Swap button (↔️) to simplify the grid.
+    - Switched to a clean 4x4 calculator grid:
+        - Row 1: `[7] [8] [9] [C]`
+        - Row 2: `[4] [5] [6] [⌫]`
+        - Row 3: `[1] [2] [3] [.]`
+        - Row 4: `[00] [0]` (Centered and spacious).
+    - Increased key button height to avoid a "squished" appearance.
+- **Enhanced Currency Selectors**:
+    - Updated the dropdown items to show comprehensive information: **Code - Full Name (Symbol)**.
+    - Example: `USD - US Dollar ($)`, `BDT - Bangladeshi Taka (৳)`.
+    - This makes it easier to identify currencies without memorizing codes.
+- **Refined Display Section**:
+    - Balanced vertical padding and spacing between the input and result rows.
+    - Maintained the "Live Rates" subtext for clarity.
 
 ## Verification Results
 
 ### Automated Verification
 - **Build Status**: Successful (`:app:assembleDebug` passed).
-- **Network Logic**: Verified that the API response is correctly parsed and fallbacks are triggered on failure.
+- **Static Analysis**: Verified that all currency labels and keypad logic are correctly integrated within the requested composable.
 
-### Live UI Verification
-The app was successfully deployed to the connected device.
-
-> [!TIP]
-> Open the "More" menu and tap **Converter** to try it out! It will automatically try to fetch the latest BDT/USD rates for you.
+> [!NOTE]
+> The "Swap" functionality was removed from the keypad to allow for larger, more balanced numeric buttons. You can still change either currency at any time using the descriptive dropdown selectors.

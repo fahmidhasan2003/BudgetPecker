@@ -1,6 +1,7 @@
-- [ ] Create `CurrencyApiService.kt` for live exchange rate fetching
-- [ ] Update `AppRepository.kt` to support currency rate fetching
-- [ ] Implement currency logic and states in `MainViewModel.kt`
-- [ ] Create `CurrencyConverterContent` in `Screens.kt`
-- [ ] Link the converter to the "More" menu and `MainActivity.kt` overlay
-- [ ] Verify build and deploy DEBUG run
+- [ ] Implement redesigned `CurrencyConverterContent` in `Screens.kt`
+    - [ ] Add 4x4 custom keypad logic (7 8 9 C / 4 5 6 ⌫ / 1 2 3 . / 00 0)
+    - [ ] Create local "Windows-style" currency selector rows
+    - [ ] Implement enhanced dropdown items format "Code - Name (Symbol)"
+    - [ ] Match Dialog aspect ratio/height with Calculator overlay
+- [ ] Verify build via `:app:assembleDebug`
+- [ ] Static analysis check

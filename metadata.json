@@ -1,0 +1,6 @@
+{
+  "name": "BudgetPecker",
+  "description": "A full-featured offline expense tracker with local storage and backup facilities.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

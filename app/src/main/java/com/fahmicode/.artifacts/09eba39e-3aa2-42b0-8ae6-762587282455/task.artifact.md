@@ -1,0 +1,6 @@
+- [ ] Create `CurrencyApiService.kt` for live exchange rate fetching
+- [ ] Update `AppRepository.kt` to support currency rate fetching
+- [ ] Implement currency logic and states in `MainViewModel.kt`
+- [ ] Create `CurrencyConverterContent` in `Screens.kt`
+- [ ] Link the converter to the "More" menu and `MainActivity.kt` overlay
+- [ ] Verify build and deploy DEBUG run

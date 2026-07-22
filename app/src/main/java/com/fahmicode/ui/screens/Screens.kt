@@ -3126,31 +3126,44 @@ fun CurrencyConverterContent(
 
     Column(
         modifier = Modifier
-            .fillMaxSize()
+            .fillMaxWidth()
+            .fillMaxHeight(0.66f)
             .background(MaterialTheme.colorScheme.surface)
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Header
+        // Header (Matches Calculator style)
         Row(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            Spacer(modifier = Modifier.size(48.dp)) // To balance the close button
             Text(
                 "Currency Converter",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = MaterialTheme.typography.titleMedium.fontFamily
+                ),
+                color = MaterialTheme.colorScheme.onSurface
             )
             IconButton(onClick = onDismiss) {
-                Icon(Icons.Default.Close, contentDescription = "Close")
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = "Close",
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
             }
         }
 
         // Display Section (Top Half)
         Column(
-            modifier = Modifier.weight(0.35f),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(0.3f)
+                .padding(horizontal = 24.dp, vertical = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
             // Row 1 (From)
             Row(
@@ -3161,11 +3174,18 @@ fun CurrencyConverterContent(
                 var expanded by remember { mutableStateOf(false) }
                 Box {
                     Row(
-                        modifier = Modifier.clickable { expanded = true }.padding(vertical = 8.dp),
+                        modifier = Modifier
+                            .clickable { expanded = true }
+                            .padding(vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(fromCurrency, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
-                        Icon(Icons.Default.ArrowDropDown, null)
+                        Text(
+                            fromCurrency,
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Icon(Icons.Default.ArrowDropDown, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                         commonCurrencies.forEach { code ->
@@ -3178,26 +3198,36 @@ fun CurrencyConverterContent(
                 }
                 Text(
                     text = "${getCurrencySymbol(fromCurrency)} $amount",
-                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                     textAlign = TextAlign.End,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
             // Row 2 (To)
             Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 var expanded by remember { mutableStateOf(false) }
                 Box {
                     Row(
-                        modifier = Modifier.clickable { expanded = true }.padding(vertical = 8.dp),
+                        modifier = Modifier
+                            .clickable { expanded = true }
+                            .padding(vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(toCurrency, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
-                        Icon(Icons.Default.ArrowDropDown, null)
+                        Text(
+                            toCurrency,
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Icon(Icons.Default.ArrowDropDown, null, tint = MaterialTheme.colorScheme.primary)
                     }
                     DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                         commonCurrencies.forEach { code ->
@@ -3223,7 +3253,12 @@ fun CurrencyConverterContent(
                 modifier = Modifier.padding(top = 12.dp)
             ) {
                 Box(
-                    modifier = Modifier.size(6.dp).clip(CircleShape).background(if (viewModel.isLiveRates.value) Color(0xFF4CAF50) else Color.Gray)
+                    modifier = Modifier
+                        .size(6.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (viewModel.isLiveRates.value) Color(0xFF4CAF50) else Color.Gray
+                        )
                 )
                 Spacer(Modifier.width(6.dp))
                 val rate = (rates[toCurrency] ?: 1.0) / (rates[fromCurrency] ?: 1.0)
@@ -3244,31 +3279,30 @@ fun CurrencyConverterContent(
         )
 
         Column(
-            modifier = Modifier.weight(0.65f).fillMaxWidth().padding(top = 12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(0.7f)
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             buttons.forEach { row ->
                 Row(
-                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     row.forEach { label ->
                         if (label.isNotBlank()) {
-                            Card(
-                                modifier = Modifier.weight(1f).fillMaxHeight().clickable { onAction(label) },
-                                shape = RoundedCornerShape(12.dp),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = if (label == "C") MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                )
-                            ) {
-                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                    Text(
-                                        text = label,
-                                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Medium, fontSize = 24.sp),
-                                        color = if (label == "C") MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurface
-                                    )
-                                }
-                            }
+                            CalculatorButton(
+                                label = label,
+                                onClick = { onAction(label) },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight(),
+                                isOperation = "C⌫.".contains(label)
+                            )
                         } else {
                             Spacer(Modifier.weight(1f))
                         }

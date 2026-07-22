@@ -1,0 +1,7 @@
+- [x] Update `CurrencyConverterContent` in `Screens.kt`
+    - [x] Root Column: Match `CalculatorContent` styling and apply `fillMaxHeight(0.66f)`
+    - [x] Header: Align with Calculator header layout
+    - [x] Display Section: Adjust weight to `0.3f` and compact currency rows
+    - [x] Keypad: Apply `surfaceVariant` background, `16.dp` padding, and `weight(0.7f)`
+    - [x] Buttons: Replace custom cards with `CalculatorButton` (matching logic)
+- [x] Verify build and layout consistency

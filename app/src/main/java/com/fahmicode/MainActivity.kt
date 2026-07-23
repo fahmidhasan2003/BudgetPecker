@@ -178,7 +178,7 @@ class MainActivity : ComponentActivity() {
                         ) {
                             Card(
                                 modifier = Modifier
-                                    .fillMaxWidth(0.9f)
+                                    .fillMaxWidth(0.85f)
                                     .wrapContentHeight(),
                                 shape = RoundedCornerShape(28.dp),
                                 elevation = CardDefaults.cardElevation(defaultElevation = 16.dp)

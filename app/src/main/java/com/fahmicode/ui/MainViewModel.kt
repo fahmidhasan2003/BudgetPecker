@@ -15,6 +15,7 @@ import com.fahmicode.data.AppDatabase
 import com.fahmicode.data.AppRepository
 import com.fahmicode.data.model.Transaction
 import com.fahmicode.data.model.Budget
+import com.fahmicode.data.model.Note
 import com.fahmicode.ui.screens.CategoryPreset
 import com.fahmicode.ui.screens.CustomExpenseCategoryPresets
 import com.fahmicode.ui.screens.CustomIncomeCategoryPresets
@@ -35,6 +36,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     val transactions: StateFlow<List<Transaction>>
     val budgets: StateFlow<List<Budget>>
+    val notes: StateFlow<List<Note>>
 
     // Preference States
     var isDarkMode = mutableStateOf(sharedPrefs.getBoolean("is_dark_mode", false))
@@ -66,7 +68,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         val database = AppDatabase.getDatabase(application)
-        repository = AppRepository(database.transactionDao(), database.budgetDao())
+        repository = AppRepository(database.transactionDao(), database.budgetDao(), database.noteDao())
 
         transactions = repository.allTransactions
             .stateIn(
@@ -76,6 +78,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             )
 
         budgets = repository.allBudgets
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.Lazily,
+                initialValue = emptyList()
+            )
+
+        notes = repository.allNotes
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.Lazily,
@@ -357,6 +366,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun deleteBudget(budget: Budget) {
         viewModelScope.launch {
             repository.deleteBudget(budget)
+        }
+    }
+
+    // Note Actions
+    fun addNote(note: Note) {
+        viewModelScope.launch {
+            repository.insertNote(note)
+        }
+    }
+
+    fun deleteNote(note: Note) {
+        viewModelScope.launch {
+            repository.deleteNote(note)
         }
     }
 

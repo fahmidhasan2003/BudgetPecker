@@ -244,7 +244,8 @@ fun MonthNavigator(
 fun DashboardScreen(
     viewModel: MainViewModel,
     modifier: Modifier = Modifier,
-    onSeeMore: () -> Unit = {}
+    onSeeMore: () -> Unit = {},
+    onNotesClick: () -> Unit = {}
 ) {
     val transactions by viewModel.transactions.collectAsStateWithLifecycle()
     val budgets by viewModel.budgets.collectAsStateWithLifecycle()
@@ -309,8 +310,17 @@ fun DashboardScreen(
                 )
             }
 
-            // Search Input Block - elegant
-            OutlinedTextField(
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onNotesClick) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.Notes,
+                        contentDescription = "Notes",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                // Search Input Block - elegant
+                OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 placeholder = { Text("Search...", fontSize = 14.sp) },
@@ -351,6 +361,7 @@ fun DashboardScreen(
                 singleLine = true
             )
         }
+    }
 
         // Month Selector - Moved here
         MonthNavigator(
@@ -2261,7 +2272,8 @@ fun BudgetScreen(viewModel: MainViewModel, modifier: Modifier = Modifier) {
 fun SettingsScreen(
     viewModel: MainViewModel,
     modifier: Modifier = Modifier,
-    onDismiss: () -> Unit = {}
+    onDismiss: () -> Unit = {},
+    onNotepadClick: () -> Unit = {}
 ) {
     val isDark by viewModel.isDarkMode
     val remindersOn by viewModel.isRemindersEnabled
@@ -2303,7 +2315,7 @@ fun SettingsScreen(
         // 3x3 Grid Menu
         val items = listOf(
             Triple("Calculator", Icons.Default.Calculate, { viewModel.showCalculator.value = true }),
-            Triple("Notepad", Icons.AutoMirrored.Filled.Notes, { Toast.makeText(context, "Notepad coming soon!", Toast.LENGTH_SHORT).show() }),
+            Triple("Notepad", Icons.AutoMirrored.Filled.Notes, onNotepadClick),
             Triple("Converter", Icons.Default.CurrencyExchange, { viewModel.showConverter.value = true }),
             Triple("Reports", Icons.Default.BarChart, { Toast.makeText(context, "Reports coming soon!", Toast.LENGTH_SHORT).show() }),
             Triple("Backup", Icons.Default.Backup, { showExportDialog = true }),

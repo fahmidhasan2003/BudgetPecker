@@ -4,19 +4,34 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.fahmicode.data.dao.TransactionDao
 import com.fahmicode.data.dao.BudgetDao
+import com.fahmicode.data.dao.NoteDao
 import com.fahmicode.data.model.Transaction
 import com.fahmicode.data.model.Budget
+import com.fahmicode.data.model.Note
 
-@Database(entities = [Transaction::class, Budget::class], version = 1, exportSchema = false)
+@Database(entities = [Transaction::class, Budget::class, Note::class], version = 2, exportSchema = false)
+@TypeConverters(NoteTypeConverter::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionDao
     abstract fun budgetDao(): BudgetDao
+    abstract fun noteDao(): NoteDao
 
     companion object {
         @Volatile
         private var INSTANCE: AppDatabase? = null
+
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `notes` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `title` TEXT NOT NULL, `content` TEXT NOT NULL, `checklistItems` TEXT NOT NULL, `amount` REAL, `expenseCategory` TEXT, `dateMillis` INTEGER NOT NULL, `colorHex` INTEGER NOT NULL)"
+                )
+            }
+        }
 
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
@@ -24,7 +39,9 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "budgetpecker_database"
-                ).build()
+                )
+                .addMigrations(MIGRATION_1_2)
+                .build()
                 INSTANCE = instance
                 instance
             }

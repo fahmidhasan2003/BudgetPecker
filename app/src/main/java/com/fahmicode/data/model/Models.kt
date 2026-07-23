@@ -20,3 +20,20 @@ data class Budget(
     val category: String,
     val amountLimit: Double
 )
+
+data class ChecklistItem(
+    val text: String,
+    var isChecked: Boolean = false
+)
+
+@Entity(tableName = "notes")
+data class Note(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val title: String,
+    val content: String,
+    val checklistItems: List<ChecklistItem> = emptyList(),
+    val amount: Double? = null,
+    val expenseCategory: String? = null,
+    val dateMillis: Long = System.currentTimeMillis(),
+    val colorHex: Long = 0xFFFFFFFF
+)

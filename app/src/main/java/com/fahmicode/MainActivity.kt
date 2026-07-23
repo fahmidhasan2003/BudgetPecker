@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.GridView
@@ -43,6 +44,7 @@ sealed class BottomNavItem(val route: String, val title: String, val icon: Image
     object Add : BottomNavItem("add", "Add", Icons.Default.Add)
     object Budget : BottomNavItem("budget", "Budgets", Icons.Default.PieChart)
     object More : BottomNavItem("settings", "More", Icons.Default.GridView)
+    object Notes : BottomNavItem("notes", "Notes", Icons.AutoMirrored.Filled.Notes)
 }
 
 class MainActivity : ComponentActivity() {
@@ -56,6 +58,7 @@ class MainActivity : ComponentActivity() {
             BudgetPeckerTheme(darkTheme = isDark) {
                 val navController = rememberNavController()
                 var showMoreMenu by remember { mutableStateOf(false) }
+                var showNotesPopup by remember { mutableStateOf(false) }
 
                 Box(modifier = Modifier.fillMaxSize()) {
                     Scaffold(
@@ -72,7 +75,8 @@ class MainActivity : ComponentActivity() {
                             NavigationHost(
                                 navController = navController,
                                 viewModel = mainViewModel,
-                                modifier = Modifier.padding(innerPadding)
+                                modifier = Modifier.padding(innerPadding),
+                                onNotesClick = { showNotesPopup = true }
                             )
 
                             if (showMoreMenu) {
@@ -111,7 +115,11 @@ class MainActivity : ComponentActivity() {
                                     ) {
                                         SettingsScreen(
                                             viewModel = mainViewModel,
-                                            onDismiss = { showMoreMenu = false }
+                                            onDismiss = { showMoreMenu = false },
+                                            onNotepadClick = {
+                                                showMoreMenu = false
+                                                navController.navigate(BottomNavItem.Notes.route)
+                                            }
                                         )
                                     }
                                 }
@@ -197,6 +205,28 @@ class MainActivity : ComponentActivity() {
                             viewModel = mainViewModel,
                             onDismiss = { mainViewModel.showAddTransactionDialog.value = false }
                         )
+                    }
+
+                    if (showNotesPopup) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.4f))
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) { showNotesPopup = false },
+                            contentAlignment = Alignment.BottomCenter
+                        ) {
+                            NotesPopup(
+                                viewModel = mainViewModel,
+                                onExpand = {
+                                    showNotesPopup = false
+                                    navController.navigate(BottomNavItem.Notes.route)
+                                },
+                                onDismiss = { showNotesPopup = false }
+                            )
+                        }
                     }
                 }
             }
@@ -295,7 +325,8 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 fun NavigationHost(
     navController: NavHostController,
     viewModel: MainViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onNotesClick: () -> Unit = {}
 ) {
     NavHost(
         navController = navController,
@@ -311,10 +342,16 @@ fun NavigationHost(
                     launchSingleTop = true
                     restoreState = true
                 }
-            })
+            }, onNotesClick = onNotesClick)
         }
         composable(BottomNavItem.History.route) { HistoryScreen(viewModel) }
         composable(BottomNavItem.Budget.route) { BudgetScreen(viewModel) }
         composable(BottomNavItem.More.route) { SettingsScreen(viewModel) }
+        composable(BottomNavItem.Notes.route) {
+            NotesScreen(
+                viewModel = viewModel,
+                onBack = { navController.popBackStack() }
+            )
+        }
     }
 }

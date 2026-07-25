@@ -1,73 +1,39 @@
-# Implementation Plan - Smart Notes Feature
+# ইমপ্লিমেন্টেশন প্ল্যান - ক্যালকুলেটর রিফ্যাক্টর (ডেডিকেটেড স্ক্রিন)
 
-This plan outlines the steps to implement a complete Smart Notes feature in the BudgetPecker app, integrating it with the existing Room database and Jetpack Compose UI.
+ক্যালকুলেটর ফিচারটিকে একটি পপআপ/ডায়ালগ থেকে আলাদা একটি ডেডিকেটেড স্ক্রিনে রূপান্তর করা হবে। এটি 'More' মেনু থেকে অ্যাক্সেস করা যাবে এবং `Screens.kt` ফাইলটিকে পরিচ্ছন্ন রাখবে।
 
-## User Review Required
+## প্রস্তাবিত পরিবর্তনসমূহ
 
-> [!IMPORTANT]
-> The database version will be incremented from 1 to 2. I will implement a migration to add the `notes` table to avoid data loss.
+### UI কম্পোনেন্টসমূহ
 
-> [!NOTE]
-> The "Import to Expense" feature will use the existing `Transaction` entity and categories.
-
-## Proposed Changes
-
-### Data Layer
-
-#### [MODIFY] [Models.kt](file:///H:/FAHMID/budgetpecker/app/src/main/java/com/fahmicode/data/model/Models.kt)
-- Add `ChecklistItem` data class.
-- Add `Note` entity with fields: `id`, `title`, `content`, `checklistItems`, `amount`, `expenseCategory`, `dateMillis`, and `colorHex`.
-
-#### [NEW] [NoteTypeConverter.kt](file:///H:/FAHMID/budgetpecker/app/src/main/java/com/fahmicode/data/NoteTypeConverter.kt)
-- Implement converters for `List<ChecklistItem>` to JSON String and vice versa using Gson (or manual JSON parsing if Gson is not available). I'll check `build.gradle` for Gson.
-
-#### [NEW] [NoteDao.kt](file:///H:/FAHMID/budgetpecker/app/src/main/java/com/fahmicode/data/dao/NoteDao.kt)
-- Define `getAllNotes()`, `insertOrUpdateNote()`, and `deleteNote()`.
-
-#### [MODIFY] [AppDatabase.kt](file:///H:/FAHMID/budgetpecker/app/src/main/java/com/fahmicode/data/AppDatabase.kt)
-- Add `Note` entity.
-- Add `@TypeConverters(NoteTypeConverter::class)`.
-- Increment version to 2.
-- Add Migration from 1 to 2 for the `notes` table.
-- Expose `noteDao()`.
-
-#### [MODIFY] [AppRepository.kt](file:///H:/FAHMID/budgetpecker/app/src/main/java/com/fahmicode/data/AppRepository.kt)
-- Add `NoteDao` to constructor.
-- Add methods for notes operations.
-
-#### [MODIFY] [MainViewModel.kt](file:///H:/FAHMID/budgetpecker/app/src/main/java/com/fahmicode/ui/MainViewModel.kt)
-- Add `notes` StateFlow.
-- Add methods: `addNote()`, `updateNote()`, `deleteNote()`.
-
----
-
-### UI & Navigation
-
-#### [NEW] [NotesScreens.kt](file:///H:/FAHMID/budgetpecker/app/src/main/java/com/fahmicode/ui/screens/NotesScreens.kt)
-- Implement `NotesScreen` (Full Screen Grid).
-- Implement `NotesPopup` (List Layout).
-- Implement `NoteDetailDialog` for creating/editing notes.
-- Implement "Import to Expense" confirmation dialog.
+#### [NEW] [CalculatorScreen.kt](file:///H:/FAHMID/budgetpecker/app/src/main/java/com/fahmicode/ui/screens/CalculatorScreen.kt)
+- ক্যালকুলেটরের সমস্ত UI কোড এই নতুন ফাইলে সরানো হবে।
+- `Screens.kt` থেকে `CalculatorContent`, `CalculatorButton`, এবং `evaluateExpression` ফাংশনগুলো এখানে নিয়ে আসা হবে।
+- ইউআই আগের ফুলস্ক্রিন ক্যালকুলেটরের মতোই থাকবে, তবে উপরে কোনো ব্যাক বাটন বা ক্লোজ বাটন থাকবে না।
 
 #### [MODIFY] [Screens.kt](file:///H:/FAHMID/budgetpecker/app/src/main/java/com/fahmicode/ui/screens/Screens.kt)
-- Update `SettingsScreen` to connect the "Notepad" button to navigation.
+- ক্যালকুলেটর সংক্রান্ত সমস্ত কোড মুছে ফেলা হবে।
+- `SettingsScreen` (More Menu) আপডেট করা হবে যাতে 'Calculator' এ ক্লিক করলে নতুন স্ক্রিনে নেভিগেট করে।
+
+### নেভিগেশন এবং স্টেট
 
 #### [MODIFY] [MainActivity.kt](file:///H:/FAHMID/budgetpecker/app/src/main/java/com/fahmicode/MainActivity.kt)
-- Add `NotesScreen` route to `NavigationHost`.
-- Handle navigation to `NotesScreen`.
+- `BottomNavItem` এ ক্যালকুলেটরের জন্য একটি রুট যোগ করা হবে।
+- `NavigationHost` এ ক্যালকুলেটর স্ক্রিনের জন্য একটি নতুন রুট (`composable`) যোগ করা হবে যাতে এটি বটম নেভিগেশন বারের সাথে কাজ করে।
+- আগের পপআপ লজিকগুলো `MainActivity` থেকে সরিয়ে ফেলা হবে।
+
+#### [MODIFY] [MainViewModel.kt](file:///H:/FAHMID/budgetpecker/app/src/main/java/com/fahmicode/ui/MainViewModel.kt)
+- `showCalculator` এবং `isCalculatorFullscreen` এর মত অপ্রয়োজনীয় স্টেটগুলো মুছে ফেলা হবে।
+- `calculatorHistory` এবং এর সাথে সম্পর্কিত লজিকগুলো অপরিবর্তিত থাকবে।
 
 ---
 
-## Verification Plan
+## যাচাইকরণ পরিকল্পনা
 
-### Automated Tests
-- I will check if the build compiles after changes.
-- Since there are no existing unit tests visible in the file list, I will rely on manual verification and build checks.
+### অটোমেটেড টেস্ট
+- `app:assembleDebug` রান করে কোড কম্পাইল হচ্ছে কি না তা নিশ্চিত করা হবে।
 
-### Manual Verification
-- Deploy to device/emulator.
-- Add a note with a checklist and verify strikethrough logic.
-- Search for a note.
-- Change note color.
-- Import a note to expense and verify it appears in the History/Dashboard.
-- Verify that existing data (Transactions, Budgets) is preserved after migration.
+### ম্যানুয়াল ভেরিফিকেশন
+- 'More' মেনু থেকে ক্যালকুলেটর ওপেন হচ্ছে কি না পরীক্ষা করা।
+- ক্যালকুলেটর স্ক্রিনে থাকাকালীন বটম নেভিগেশন বার দেখা যাচ্ছে কি না এবং কাজ করছে কি না দেখা।
+- ক্যালকুলেটরের হিসাব এবং হিস্ট্রি ঠিকঠাক কাজ করছে কি না যাচাই করা।

@@ -25,10 +25,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -53,14 +51,10 @@ import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.CurrencyExchange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Flag
-import androidx.compose.material.icons.filled.Fullscreen
-import androidx.compose.material.icons.filled.FullscreenExit
-import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
@@ -90,6 +84,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
@@ -111,7 +106,6 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -244,8 +238,7 @@ fun MonthNavigator(
 fun DashboardScreen(
     viewModel: MainViewModel,
     modifier: Modifier = Modifier,
-    onSeeMore: () -> Unit = {},
-    onNotesClick: () -> Unit = {}
+    onSeeMore: () -> Unit = {}
 ) {
     val transactions by viewModel.transactions.collectAsStateWithLifecycle()
     val budgets by viewModel.budgets.collectAsStateWithLifecycle()
@@ -310,17 +303,8 @@ fun DashboardScreen(
                 )
             }
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onNotesClick) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.Notes,
-                        contentDescription = "Notes",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-
-                // Search Input Block - elegant
-                OutlinedTextField(
+            // Search Input Block - elegant
+            OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 placeholder = { Text("Search...", fontSize = 14.sp) },
@@ -361,7 +345,6 @@ fun DashboardScreen(
                 singleLine = true
             )
         }
-    }
 
         // Month Selector - Moved here
         MonthNavigator(
@@ -994,7 +977,6 @@ fun DashboardScreen(
         }
     }
 }
-
 class MonthBarData(val name: String, val income: Double, val expense: Double)
 
 @Composable
@@ -2273,7 +2255,8 @@ fun SettingsScreen(
     viewModel: MainViewModel,
     modifier: Modifier = Modifier,
     onDismiss: () -> Unit = {},
-    onNotepadClick: () -> Unit = {}
+    onNotepadClick: () -> Unit = {},
+    onCalculatorClick: () -> Unit = {}
 ) {
     val isDark by viewModel.isDarkMode
     val remindersOn by viewModel.isRemindersEnabled
@@ -2314,7 +2297,7 @@ fun SettingsScreen(
 
         // 3x3 Grid Menu
         val items = listOf(
-            Triple("Calculator", Icons.Default.Calculate, { viewModel.showCalculator.value = true }),
+            Triple("Calculator", Icons.Default.Calculate, onCalculatorClick),
             Triple("Notepad", Icons.AutoMirrored.Filled.Notes, onNotepadClick),
             Triple("Converter", Icons.Default.CurrencyExchange, { viewModel.showConverter.value = true }),
             Triple("Reports", Icons.Default.BarChart, { Toast.makeText(context, "Reports coming soon!", Toast.LENGTH_SHORT).show() }),
@@ -2382,7 +2365,7 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
-                "BudgetPecker v1.0.1",
+                "BudgetPecker v2.0.1-Beta",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f)
             )
@@ -2415,7 +2398,17 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("Dark Mode", fontWeight = FontWeight.SemiBold)
-                        Switch(checked = isDark, onCheckedChange = { viewModel.setDarkMode(it) })
+                        Switch(
+                            checked = isDark,
+                            onCheckedChange = { viewModel.setDarkMode(it) },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                                checkedTrackColor = MaterialTheme.colorScheme.primary,
+                                uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+                                uncheckedBorderColor = MaterialTheme.colorScheme.outline
+                            )
+                        )
                     }
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
@@ -2753,323 +2746,6 @@ fun CustomColorPicker(
             valueRange = 0f..1f,
             brush = brightnessBrush
         )
-    }
-}
-
-@Composable
-fun CalculatorContent(
-    viewModel: MainViewModel,
-    isFullscreen: Boolean,
-    onToggleFullscreen: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    var expression by remember { mutableStateOf("") }
-    var result by remember { mutableStateOf("") }
-    var showHistory by remember { mutableStateOf(false) }
-
-    val clipboard = LocalClipboardManager.current
-    val context = LocalContext.current
-
-    val onAction: (String) -> Unit = { action ->
-        when (action) {
-            "AC" -> { expression = ""; result = "" }
-            "⌫" -> { if (expression.isNotEmpty()) expression = expression.dropLast(1) }
-            "00" -> { if (expression.isNotEmpty() && expression.last().isDigit()) expression += "00" }
-            "=" -> {
-                if (expression.isNotBlank()) {
-                    val evaluated = evaluateExpression(expression)
-                    result = evaluated
-                    viewModel.addToCalculatorHistory("$expression = $evaluated")
-                }
-            }
-            "copy" -> {
-                if (result.isNotBlank()) {
-                    clipboard.setText(AnnotatedString(result))
-                    Toast.makeText(context, "Result copied!", Toast.LENGTH_SHORT).show()
-                }
-            }
-            else -> expression += action
-        }
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
-            .then(if (isFullscreen) Modifier.statusBarsPadding().navigationBarsPadding() else Modifier)
-    ) {
-        // Header
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = { showHistory = !showHistory }) {
-                Icon(Icons.Default.History, contentDescription = "History", tint = if (showHistory) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
-            }
-            Text(
-                "Calculator",
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = MaterialTheme.typography.titleMedium.fontFamily
-                ),
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Row {
-                IconButton(onClick = onToggleFullscreen) {
-                    Icon(
-                        if (isFullscreen) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
-                        contentDescription = "Toggle Fullscreen",
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-                IconButton(onClick = onDismiss) {
-                    Icon(
-                        Icons.Default.Close,
-                        contentDescription = "Close",
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-        }
-
-        Box(modifier = Modifier.weight(1f)) {
-            if (showHistory) {
-                // History View
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp)
-                ) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text("History", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                        TextButton(onClick = { viewModel.clearCalculatorHistory() }) { Text("Clear", color = MaterialTheme.colorScheme.error) }
-                    }
-                    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(viewModel.calculatorHistory) { item ->
-                            Card(
-                                modifier = Modifier.fillMaxWidth().clickable {
-                                    val parts = item.split(" = ")
-                                    if (parts.size > 1) expression = parts[1]
-                                    showHistory = false
-                                },
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                            ) {
-                                Text(item, modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.bodyMedium)
-                            }
-                        }
-                    }
-                }
-            } else {
-                // Calculator Main View
-                Column(modifier = Modifier.fillMaxSize()) {
-                    // Display
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(if (isFullscreen) 0.3f else 0.25f)
-                            .padding(horizontal = 24.dp, vertical = if (isFullscreen) 24.dp else 12.dp),
-                        horizontalAlignment = Alignment.End,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = expression.ifEmpty { "0" },
-                            style = MaterialTheme.typography.headlineSmall.copy(
-                                fontFamily = MaterialTheme.typography.headlineSmall.fontFamily
-                            ),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.End,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = result.ifEmpty { "" },
-                                style = MaterialTheme.typography.headlineLarge.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontFamily = MaterialTheme.typography.headlineLarge.fontFamily
-                                ),
-                                color = MaterialTheme.colorScheme.primary,
-                                textAlign = TextAlign.End
-                            )
-                            if (result.isNotEmpty()) {
-                                IconButton(onClick = { onAction("copy") }) {
-                                    Icon(
-                                        Icons.Default.ContentCopy,
-                                        contentDescription = "Copy",
-                                        modifier = Modifier.size(20.dp),
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // Keypad
-                    val buttons = listOf(
-                        listOf("AC", "%", "⌫", "÷"),
-                        listOf("7", "8", "9", "×"),
-                        listOf("4", "5", "6", "-"),
-                        listOf("1", "2", "3", "+"),
-                        listOf("00", "0", ".", "=")
-                    )
-
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(0.7f)
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        buttons.forEach { row ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth().weight(1f),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                row.forEach { label ->
-                                    if (label.isNotBlank()) {
-                                        CalculatorButton(
-                                            label = label,
-                                            onClick = { onAction(label) },
-                                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                                            isOperation = "+-×÷=%AC⌫".contains(label)
-                                        )
-                                    } else {
-                                        Spacer(Modifier.weight(1f))
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun CalculatorButton(
-    label: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    isOperation: Boolean = false
-) {
-    val containerColor = if (label == "=") {
-        MaterialTheme.colorScheme.primary
-    } else if (label == "AC" || label == "⌫") {
-        MaterialTheme.colorScheme.errorContainer
-    } else if (isOperation) {
-        MaterialTheme.colorScheme.secondaryContainer
-    } else {
-        MaterialTheme.colorScheme.surface
-    }
-
-    val contentColor = if (label == "=") {
-        MaterialTheme.colorScheme.onPrimary
-    } else if (label == "AC" || label == "⌫") {
-        MaterialTheme.colorScheme.onErrorContainer
-    } else if (isOperation) {
-        MaterialTheme.colorScheme.onSecondaryContainer
-    } else {
-        MaterialTheme.colorScheme.onSurface
-    }
-
-    Card(
-        modifier = modifier.clickable { onClick() },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = containerColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            val isOperator = "+-×÷=%AC⌫".contains(label)
-            Text(
-                text = label,
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 24.sp,
-                    fontFamily = if (isOperator) FontFamily.Default else MaterialTheme.typography.titleLarge.fontFamily
-                ),
-                color = contentColor
-            )
-        }
-    }
-}
-
-private fun evaluateExpression(expr: String): String {
-    return try {
-        // Simple manual parsing for basic math
-        val cleanExpr = expr.replace("%", "/100.0")
-            .replace("×", "*")
-            .replace("÷", "/")
-        
-        // This is a very basic evaluator for a demo app. 
-        // For production, consider using an exp evaluator library or a proper shunting-yard impl.
-        // We'll use a script engine approach if possible, or a simpler fallback.
-        val res = object : Any() {
-            fun eval(str: String): Double {
-                return object : Any() {
-                    var pos = -1
-                    var ch = 0
-                    fun nextChar() {
-                        ch = if (++pos < str.length) str[pos].toInt() else -1
-                    }
-                    fun eat(charToEat: Int): Boolean {
-                        while (ch == ' '.toInt()) nextChar()
-                        if (ch == charToEat) {
-                            nextChar()
-                            return true
-                        }
-                        return false
-                    }
-                    fun parse(): Double {
-                        nextChar()
-                        val x = parseExpression()
-                        if (pos < str.length) throw RuntimeException("Unexpected: " + ch.toChar())
-                        return x
-                    }
-                    fun parseExpression(): Double {
-                        var x = parseTerm()
-                        while (true) {
-                            if (eat('+'.toInt())) x += parseTerm()
-                            else if (eat('-'.toInt())) x -= parseTerm()
-                            else return x
-                        }
-                    }
-                    fun parseTerm(): Double {
-                        var x = parseFactor()
-                        while (true) {
-                            if (eat('*'.toInt())) x *= parseFactor()
-                            else if (eat('/'.toInt())) x /= parseFactor()
-                            else return x
-                        }
-                    }
-                    fun parseFactor(): Double {
-                        if (eat('+'.toInt())) return parseFactor()
-                        if (eat('-'.toInt())) return -parseFactor()
-                        var x: Double
-                        val startPos = pos
-                        if (eat('('.toInt())) {
-                            x = parseExpression()
-                            eat(')'.toInt())
-                        } else if (ch >= '0'.toInt() && ch <= '9'.toInt() || ch == '.'.toInt()) {
-                            while (ch >= '0'.toInt() && ch <= '9'.toInt() || ch == '.'.toInt()) nextChar()
-                            x = java.lang.Double.parseDouble(str.substring(startPos, pos))
-                        } else {
-                            throw RuntimeException("Unexpected: " + ch.toChar())
-                        }
-                        return x
-                    }
-                }.parse()
-            }
-        }.eval(cleanExpr)
-        
-        if (res % 1.0 == 0.0) res.toInt().toString() else DecimalFormat("#.####").format(res)
-    } catch (e: Exception) {
-        "Error"
     }
 }
 

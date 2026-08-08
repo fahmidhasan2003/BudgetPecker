@@ -1,0 +1,5 @@
+- [x] Fix Dark Mode Switch visibility and contrast in `Screens.kt`
+- [x] Fix Percentage (%) live calculation and evaluation logic in `CalculatorScreen.kt`
+- [x] Fix Dark Mode Switch visibility and contrast in `Screens.kt`
+- [x] Fix Percentage (%) live calculation and evaluation logic in `CalculatorScreen.kt`
+- [x] Run application on device (USB Debug)

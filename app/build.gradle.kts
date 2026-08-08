@@ -30,8 +30,8 @@ android {
     applicationId = "com.fahmicode.budgetpecker"
     minSdk = 24
     targetSdk = 35
-    versionCode = 2
-    versionName = "1.0.1"
+    versionCode = 3
+    versionName = "2.0.1-Beta"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     signingConfig = signingConfigs.getByName("release")

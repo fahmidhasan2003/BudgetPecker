@@ -23,6 +23,7 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material3.*
@@ -45,6 +46,7 @@ sealed class BottomNavItem(val route: String, val title: String, val icon: Image
     object Budget : BottomNavItem("budget", "Budgets", Icons.Default.PieChart)
     object More : BottomNavItem("settings", "More", Icons.Default.GridView)
     object Notes : BottomNavItem("notes", "Notes", Icons.AutoMirrored.Filled.Notes)
+    object Calculator : BottomNavItem("calculator", "Calculator", Icons.Default.Calculate)
 }
 
 class MainActivity : ComponentActivity() {
@@ -75,8 +77,7 @@ class MainActivity : ComponentActivity() {
                             NavigationHost(
                                 navController = navController,
                                 viewModel = mainViewModel,
-                                modifier = Modifier.padding(innerPadding),
-                                onNotesClick = { showNotesPopup = true }
+                                modifier = Modifier.padding(innerPadding)
                             )
 
                             if (showMoreMenu) {
@@ -119,55 +120,14 @@ class MainActivity : ComponentActivity() {
                                             onNotepadClick = {
                                                 showMoreMenu = false
                                                 navController.navigate(BottomNavItem.Notes.route)
+                                            },
+                                            onCalculatorClick = {
+                                                showMoreMenu = false
+                                                navController.navigate(BottomNavItem.Calculator.route)
                                             }
                                         )
                                     }
                                 }
-                            }
-                        }
-                    }
-
-                    val showCalculator by mainViewModel.showCalculator
-                    val isCalculatorFullscreen by mainViewModel.isCalculatorFullscreen
-                    if (showCalculator) {
-                        if (isCalculatorFullscreen) {
-                            // Fullscreen Mode
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(MaterialTheme.colorScheme.surface)
-                            ) {
-                                CalculatorContent(
-                                    viewModel = mainViewModel,
-                                    isFullscreen = true,
-                                    onToggleFullscreen = { mainViewModel.isCalculatorFullscreen.value = false },
-                                    onDismiss = { mainViewModel.showCalculator.value = false }
-                                )
-                            }
-                        } else {
-                            // Pop-up Mode
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(Color.Black.copy(alpha = 0.4f))
-                                    .clickable(
-                                        interactionSource = remember { MutableInteractionSource() },
-                                        indication = null
-                                    ) { mainViewModel.showCalculator.value = false },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Card(
-                                    modifier = Modifier
-                                        .fillMaxWidth(0.85f)
-                                        .fillMaxHeight(0.66f)
-                                    ) {
-                                        CalculatorContent(
-                                            viewModel = mainViewModel,
-                                            isFullscreen = false,
-                                            onToggleFullscreen = { mainViewModel.isCalculatorFullscreen.value = true },
-                                            onDismiss = { mainViewModel.showCalculator.value = false }
-                                        )
-                                    }
                             }
                         }
                     }
@@ -257,6 +217,12 @@ fun BottomNavigationBar(
         items.forEach { item ->
             val isAdd = item == BottomNavItem.Add
             val isMore = item == BottomNavItem.More
+            
+            val isSelected = when (item) {
+                BottomNavItem.More -> currentRoute == item.route || currentRoute == BottomNavItem.Notes.route || currentRoute == BottomNavItem.Calculator.route
+                else -> !isAdd && currentRoute == item.route
+            }
+
             NavigationBarItem(
                 icon = {
                     if (isAdd) {
@@ -282,7 +248,7 @@ fun BottomNavigationBar(
                         Text(item.title)
                     }
                 },
-                selected = !isAdd && !isMore && currentRoute == item.route,
+                selected = isSelected,
                 colors = NavigationBarItemDefaults.colors(
                     indicatorColor = if (isAdd) Color.Transparent else MaterialTheme.colorScheme.secondaryContainer
                 ),
@@ -325,8 +291,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 fun NavigationHost(
     navController: NavHostController,
     viewModel: MainViewModel,
-    modifier: Modifier = Modifier,
-    onNotesClick: () -> Unit = {}
+    modifier: Modifier = Modifier
 ) {
     NavHost(
         navController = navController,
@@ -342,7 +307,7 @@ fun NavigationHost(
                     launchSingleTop = true
                     restoreState = true
                 }
-            }, onNotesClick = onNotesClick)
+            })
         }
         composable(BottomNavItem.History.route) { HistoryScreen(viewModel) }
         composable(BottomNavItem.Budget.route) { BudgetScreen(viewModel) }
@@ -352,6 +317,9 @@ fun NavigationHost(
                 viewModel = viewModel,
                 onBack = { navController.popBackStack() }
             )
+        }
+        composable(BottomNavItem.Calculator.route) {
+            CalculatorScreen(viewModel = viewModel)
         }
     }
 }

@@ -1,48 +1,25 @@
-# Walkthrough - Smart Notes Feature
+# ওয়াকথ্রু - ড্যাশবোর্ড হেডার এবং নেভিগেশন ফিক্স
 
-The Smart Notes feature has been successfully implemented and integrated into the BudgetPecker app. This feature allows users to create, manage, and search notes with checklists, color-coding, and the ability to import potential expenses directly into the transaction history.
+ড্যাশবোর্ড স্ক্রিনের হেডার থেকে অতিরিক্ত আইকন সরানো হয়েছে এবং নেভিগেশন লজিক আরও সুসংহত করা হয়েছে।
 
-## Changes Made
+## প্রধান পরিবর্তনসমূহ:
 
-### Data Layer
-- **Models**: Added `Note` and `ChecklistItem` entities.
-- **Database**:
-    - Created `NoteDao` for CRUD operations.
-    - Implemented `NoteTypeConverter` using Moshi to store checklists as JSON in Room.
-    - Incremented database version to 2 and added a migration from 1 to 2.
-- **Repository & ViewModel**: Updated `AppRepository` and `MainViewModel` to support note operations and state.
+### ১. হেডার ইউআই (Header UI) রিফাইনমেন্ট
+- **অতিরিক্ত আইকন অপসারণ**: সার্চ বারের পাশে থাকা নোটস বা হ্যামবার্গার আইকনটি সরিয়ে ফেলা হয়েছে। এখন ড্যাশবোর্ড হেডার আরও ক্লিন এবং প্রফেশনাল দেখাচ্ছে।
+- **সার্চ বার**: সার্চ বারের পজিশন এবং স্টাইলিং ঠিক করা হয়েছে যাতে এটি ক্লিক করলে শুধুমাত্র সার্চিং বিহেভিয়ার ট্রিগার করে।
 
-### UI Components
-- **Full Screen Notes View**: A 2-column grid layout with search functionality and color-coded note cards.
-- **Popup Notes View**: A compact list layout accessible from the Dashboard for quick note-taking.
-- **Note Detail Editor**:
-    - Support for title and content.
-    - Interactive checklist with strikethrough logic and opacity dimming.
-    - Color picker for card backgrounds.
-    - Fields for "Amount" and "Category" for expense integration.
+### ২. কোড ক্লিনআপ এবং স্ট্রাকচার ফিক্স
+- **নেস্টিং সমস্যা সমাধান**: `Screens.kt` ফাইলে ব্র্যাকার (Brace) জনিত সমস্যার কারণে ড্যাশবোর্ড স্ক্রিন রেন্ডারিংয়ে যে ত্রুটি ছিল তা স্থায়ীভাবে সমাধান করা হয়েছে।
+- **প্যারামিটার রিমুভাল**: `DashboardScreen` এবং `NavigationHost` থেকে অপ্রয়োজনীয় `onNotesClick` কলব্যাকটি মুছে ফেলা হয়েছে।
 
-### Integration
-- **Navigation**: Added routes for Notes in the `NavHost`.
-- **More Menu**: Connected the "Notepad" option to the Full Screen Notes view.
-- **Dashboard**: Added a "Notes" shortcut icon in the header to open the quick-access Popup view.
-- **Expense Import**: notes with an amount can be imported into the transactions table with a single click and confirmation.
+### ৩. নেভিগেশন ভেরিফিকেশন
+- বটম নেভিগেশন বারের 'Dashboard' ট্যাবে ক্লিক করলে এখন সঠিকভাবে এবং ক্লিনলি `DashboardScreen` ওপেন হবে।
+- নেভিগেশন গ্রাফ এবং রুট ম্যাপিং পুনরায় পরীক্ষা করা হয়েছে।
 
-## Verification Results
-
-### Build & Compilation
-- The project builds successfully (`app:assembleDebug`).
-- Database migration logic ensures existing user data is preserved.
-
-### Feature Highlights
-- **Smart Checklists**: Checking an item automatically applies a strikethrough and dims the text.
-- **Search**: Users can filter notes by title or content in real-time.
-- **One-Click Import**: Notes with financial data show an "Import to Expense" option, which creates a transaction in the existing database without requiring manual entry in the expense form.
+## ফলাফল যাচাই:
+- অ্যাপটি সফলভাবে বিল্ড হয়েছে (`Build finished successfully`)।
+- ড্যাশবোর্ড হেডার থেকে আইকনটি চলে গেছে এবং নেভিগেশন ঠিকঠাক কাজ করছে।
 
 ---
-render_diffs(file:///H:/FAHMID/budgetpecker/app/src/main/java/com/fahmicode/data/model/Models.kt)
-render_diffs(file:///H:/FAHMID/budgetpecker/app/src/main/java/com/fahmicode/data/AppDatabase.kt)
-render_diffs(file:///H:/FAHMID/budgetpecker/app/src/main/java/com/fahmicode/data/AppRepository.kt)
-render_diffs(file:///H:/FAHMID/budgetpecker/app/src/main/java/com/fahmicode/ui/MainViewModel.kt)
 render_diffs(file:///H:/FAHMID/budgetpecker/app/src/main/java/com/fahmicode/ui/screens/Screens.kt)
 render_diffs(file:///H:/FAHMID/budgetpecker/app/src/main/java/com/fahmicode/MainActivity.kt)
-render_diffs(file:///H:/FAHMID/budgetpecker/app/src/main/java/com/fahmicode/ui/screens/NotesScreens.kt)

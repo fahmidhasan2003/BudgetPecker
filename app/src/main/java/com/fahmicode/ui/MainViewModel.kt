@@ -56,8 +56,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     var showAddTransactionDialog = mutableStateOf(false)
 
-    var showCalculator = mutableStateOf(false)
-    var isCalculatorFullscreen = mutableStateOf(false)
     var calculatorHistory = mutableStateListOf<String>()
 
     // Currency Converter States

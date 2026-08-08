@@ -1,8 +1,7 @@
 package com.fahmicode.ui.screens
 
 import android.widget.Toast
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -13,10 +12,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -32,60 +35,113 @@ fun CalculatorScreen(
     modifier: Modifier = Modifier
 ) {
     var expression by remember { mutableStateOf("") }
-    var result by remember { mutableStateOf("") }
+    var liveResult by remember { mutableStateOf("") }
     var showHistory by remember { mutableStateOf(false) }
 
     val clipboard = LocalClipboardManager.current
     val context = LocalContext.current
 
+    val expressionScrollState = rememberScrollState()
+    val resultScrollState = rememberScrollState()
+
+    // Auto-scroll to end when expression or liveResult changes
+    LaunchedEffect(expression) {
+        expressionScrollState.animateScrollTo(expressionScrollState.maxValue)
+    }
+    LaunchedEffect(liveResult) {
+        resultScrollState.animateScrollTo(resultScrollState.maxValue)
+    }
+
+    // Helper to check if the last number already has a decimal point
+    fun canAddDecimal(expr: String): Boolean {
+        if (expr.isEmpty()) return true
+        val lastNumber = expr.split("+", "-", "×", "÷", "%").last()
+        return !lastNumber.contains(".")
+    }
+
     val onAction: (String) -> Unit = { action ->
         when (action) {
-            "AC" -> { expression = ""; result = "" }
-            "⌫" -> { if (expression.isNotEmpty()) expression = expression.dropLast(1) }
-            "00" -> { if (expression.isNotEmpty() && expression.last().isDigit()) expression += "00" }
+            "AC" -> {
+                expression = ""
+                liveResult = ""
+            }
+            "⌫" -> {
+                if (expression.isNotEmpty()) {
+                    expression = expression.dropLast(1)
+                    liveResult = if (expression.isNotEmpty()) evaluateExpression(expression) else ""
+                }
+            }
+            "00" -> {
+                if (expression.isNotEmpty() && expression.last().isDigit()) {
+                    expression += "00"
+                    liveResult = evaluateExpression(expression)
+                }
+            }
+            "." -> {
+                if (canAddDecimal(expression)) {
+                    expression += if (expression.isEmpty() || !expression.last().isDigit()) "0." else "."
+                }
+            }
             "=" -> {
                 if (expression.isNotBlank()) {
                     val evaluated = evaluateExpression(expression)
-                    result = evaluated
-                    viewModel.addToCalculatorHistory("$expression = $evaluated")
+                    if (evaluated != "Error" && evaluated.isNotEmpty()) {
+                        viewModel.addToCalculatorHistory("$expression = $evaluated")
+                        expression = evaluated
+                        liveResult = ""
+                    }
                 }
             }
             "copy" -> {
-                if (result.isNotBlank()) {
-                    clipboard.setText(AnnotatedString(result))
+                val toCopy = if (liveResult.isNotEmpty()) liveResult else expression
+                if (toCopy.isNotBlank() && toCopy != "Error") {
+                    clipboard.setText(AnnotatedString(toCopy))
                     Toast.makeText(context, "Result copied!", Toast.LENGTH_SHORT).show()
                 }
             }
-            else -> expression += action
+            else -> {
+                // Prevent starting with operator except minus
+                if (expression.isEmpty() && "+×÷%".contains(action)) {
+                    // Do nothing
+                } else {
+                    // Prevent multiple operators in a row
+                    if (expression.isNotEmpty() && "+-×÷%.".contains(expression.last().toString()) && "+-×÷%.".contains(action)) {
+                        expression = expression.dropLast(1) + action
+                    } else {
+                        expression += action
+                    }
+                    liveResult = evaluateExpression(expression)
+                }
+            }
         }
     }
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
-            .statusBarsPadding()
+            .background(MaterialTheme.colorScheme.background)
     ) {
-        // Header
-        Row(
+        // Header - Moved title up and reduced spacing
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            IconButton(onClick = { showHistory = !showHistory }) {
-                Icon(Icons.Default.History, contentDescription = "History", tint = if (showHistory) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
-            }
             Text(
                 "Calculator",
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Bold
+                style = MaterialTheme.typography.headlineLarge.copy(
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 0.5.sp,
+                    fontSize = 28.sp
                 ),
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onBackground
             )
-            // Empty box to balance the header
-            Box(modifier = Modifier.size(48.dp))
+            Text(
+                "Quick Utility Tool",
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+            )
         }
 
         Box(modifier = Modifier.weight(1f)) {
@@ -96,21 +152,102 @@ fun CalculatorScreen(
                         .fillMaxSize()
                         .padding(16.dp)
                 ) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text("History", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                        TextButton(onClick = { viewModel.clearCalculatorHistory() }) { Text("Clear", color = MaterialTheme.colorScheme.error) }
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(onClick = { showHistory = false }) {
+                            Icon(Icons.Default.Close, contentDescription = "Close History")
+                        }
+                        Text(
+                            "Recent History",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        if (viewModel.calculatorHistory.isNotEmpty()) {
+                            TextButton(onClick = { viewModel.clearCalculatorHistory() }) {
+                                Text("Clear All", color = MaterialTheme.colorScheme.error)
+                            }
+                        } else {
+                            Spacer(Modifier.width(48.dp))
+                        }
                     }
-                    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(viewModel.calculatorHistory) { item ->
+                    
+                    if (viewModel.calculatorHistory.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
                             Card(
-                                modifier = Modifier.fillMaxWidth().clickable {
-                                    val parts = item.split(" = ")
-                                    if (parts.size > 1) expression = parts[1]
-                                    showHistory = false
-                                },
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                                ),
+                                shape = RoundedCornerShape(16.dp),
+                                modifier = Modifier.padding(32.dp).shadow(4.dp, RoundedCornerShape(16.dp))
                             ) {
-                                Text(item, modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.bodyMedium)
+                                Column(
+                                    modifier = Modifier.padding(24.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Icon(
+                                        Icons.Default.History,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(48.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                                    )
+                                    Spacer(Modifier.height(12.dp))
+                                    Text(
+                                        "No History Yet",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            contentPadding = PaddingValues(vertical = 12.dp)
+                        ) {
+                            items(viewModel.calculatorHistory) { item ->
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            val parts = item.split(" = ")
+                                            if (parts.size > 1) {
+                                                expression = parts[1]
+                                                liveResult = ""
+                                            }
+                                            showHistory = false
+                                        },
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                    ),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Text(
+                                        item,
+                                        modifier = Modifier.padding(16.dp),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontFamily = FontFamily.SansSerif
+                                    )
+                                }
+                            }
+                            item {
+                                Text(
+                                    "Tap on any history item to recall",
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 16.dp, bottom = 8.dp),
+                                    textAlign = TextAlign.Center,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                )
                             }
                         }
                     }
@@ -118,45 +255,116 @@ fun CalculatorScreen(
             } else {
                 // Calculator Main View
                 Column(modifier = Modifier.fillMaxSize()) {
-                    // Display
-                    Column(
+                    // Display Result Card - Expanded height and styled
+                    Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(0.3f)
-                            .padding(horizontal = 24.dp, vertical = 24.dp),
-                        horizontalAlignment = Alignment.End,
-                        verticalArrangement = Arrangement.Center
+                            .height(280.dp) // Even taller for better readability
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .shadow(16.dp, RoundedCornerShape(28.dp)),
+                        shape = RoundedCornerShape(28.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        ),
+                        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
                     ) {
-                        Text(
-                            text = expression.ifEmpty { "0" },
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.End,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = result.ifEmpty { "" },
-                                style = MaterialTheme.typography.headlineLarge.copy(
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                color = MaterialTheme.colorScheme.primary,
-                                textAlign = TextAlign.End
-                            )
-                            if (result.isNotEmpty()) {
-                                IconButton(onClick = { onAction("copy") }) {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            // Action Icons inside Card - better padding
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                IconButton(
+                                    onClick = { showHistory = true },
+                                    modifier = Modifier.size(44.dp)
+                                ) {
                                     Icon(
-                                        Icons.Default.ContentCopy,
-                                        contentDescription = "Copy",
-                                        modifier = Modifier.size(20.dp),
-                                        tint = MaterialTheme.colorScheme.primary
+                                        Icons.Default.History,
+                                        contentDescription = "History",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+
+                                if (expression.isNotEmpty()) {
+                                    IconButton(
+                                        onClick = { onAction("copy") },
+                                        modifier = Modifier.size(44.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.ContentCopy,
+                                            contentDescription = "Copy",
+                                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 24.dp, vertical = 32.dp),
+                                horizontalAlignment = Alignment.End,
+                                verticalArrangement = Arrangement.Bottom
+                            ) {
+                                // Scrollable Expression showing END
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(expressionScrollState),
+                                    horizontalArrangement = Arrangement.End
+                                ) {
+                                    Text(
+                                        text = expression.ifEmpty { "0" },
+                                        style = MaterialTheme.typography.headlineMedium.copy(
+                                            fontSize = 28.sp,
+                                            fontWeight = FontWeight.Medium
+                                        ),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                        maxLines = 1,
+                                        fontFamily = FontFamily.SansSerif,
+                                        textAlign = TextAlign.End
+                                    )
+                                }
+                                
+                                Spacer(Modifier.height(20.dp))
+                                
+                                // Auto-scaling font size for result
+                                val resultFontSize = remember(liveResult) {
+                                    when {
+                                        liveResult.length <= 10 -> 54.sp
+                                        liveResult.length <= 14 -> 42.sp
+                                        liveResult.length <= 18 -> 32.sp
+                                        else -> 24.sp
+                                    }
+                                }
+
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(resultScrollState),
+                                    horizontalArrangement = Arrangement.End
+                                ) {
+                                    Text(
+                                        text = liveResult.ifEmpty { "" },
+                                        style = MaterialTheme.typography.displayLarge.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = resultFontSize
+                                        ),
+                                        color = MaterialTheme.colorScheme.primary,
+                                        textAlign = TextAlign.End,
+                                        maxLines = 1,
+                                        fontFamily = FontFamily.SansSerif
                                     )
                                 }
                             }
                         }
                     }
+
+                    Spacer(modifier = Modifier.weight(0.1f))
 
                     // Keypad
                     val buttons = listOf(
@@ -170,22 +378,29 @@ fun CalculatorScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(0.7f)
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                            .weight(1.5f)
+                            .background(
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
+                            )
+                            .padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         buttons.forEach { row ->
                             Row(
-                                modifier = Modifier.fillMaxWidth().weight(1f),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 row.forEach { label ->
                                     if (label.isNotBlank()) {
                                         CalculatorButton(
                                             label = label,
                                             onClick = { onAction(label) },
-                                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .fillMaxHeight(),
                                             isOperation = "+-×÷=%AC⌫".contains(label)
                                         )
                                     } else {
@@ -250,10 +465,16 @@ fun CalculatorButton(
 }
 
 private fun evaluateExpression(expr: String): String {
+    if (expr.isBlank()) return ""
     return try {
-        // Simple manual parsing for basic math
-        val cleanExpr = expr.replace("%", "/100.0")
-            .replace("×", "*")
+        // Clean expression: remove trailing operators, but keep % for live calculation
+        var cleaned = expr.trim()
+        while (cleaned.isNotEmpty() && "+-×÷.".contains(cleaned.last().toString())) {
+            cleaned = cleaned.dropLast(1)
+        }
+        if (cleaned.isEmpty()) return ""
+
+        val finalExpr = cleaned.replace("×", "*")
             .replace("÷", "/")
         
         val res = object : Any() {
@@ -261,11 +482,13 @@ private fun evaluateExpression(expr: String): String {
                 return object : Any() {
                     var pos = -1
                     var ch = 0
+                    var lastWasPercent = false
+
                     fun nextChar() {
-                        ch = if (++pos < str.length) str[pos].toInt() else -1
+                        ch = if (++pos < str.length) str[pos].code else -1
                     }
                     fun eat(charToEat: Int): Boolean {
-                        while (ch == ' '.toInt()) nextChar()
+                        while (ch == ' '.code) nextChar()
                         if (ch == charToEat) {
                             nextChar()
                             return true
@@ -281,41 +504,71 @@ private fun evaluateExpression(expr: String): String {
                     fun parseExpression(): Double {
                         var x = parseTerm()
                         while (true) {
-                            if (eat('+'.toInt())) x += parseTerm()
-                            else if (eat('-'.toInt())) x -= parseTerm()
-                            else return x
+                            if (eat('+'.code)) {
+                                val y = parseTerm()
+                                if (lastWasPercent) x += x * y else x += y
+                                lastWasPercent = false
+                            } else if (eat('-'.code)) {
+                                val y = parseTerm()
+                                if (lastWasPercent) x -= x * y else x -= y
+                                lastWasPercent = false
+                            } else return x
                         }
                     }
                     fun parseTerm(): Double {
                         var x = parseFactor()
                         while (true) {
-                            if (eat('*'.toInt())) x *= parseFactor()
-                            else if (eat('/'.toInt())) x /= parseFactor()
-                            else return x
+                            if (eat('*'.code)) {
+                                x *= parseFactor()
+                                lastWasPercent = false
+                            } else if (eat('/'.code)) {
+                                x /= parseFactor()
+                                lastWasPercent = false
+                            } else return x
                         }
                     }
                     fun parseFactor(): Double {
-                        if (eat('+'.toInt())) return parseFactor()
-                        if (eat('-'.toInt())) return -parseFactor()
+                        if (eat('+'.code)) return parseFactor()
+                        if (eat('-'.code)) return -parseFactor()
                         var x: Double
                         val startPos = pos
-                        if (eat('('.toInt())) {
+                        if (eat('('.code)) {
                             x = parseExpression()
-                            eat(')'.toInt())
-                        } else if (ch >= '0'.toInt() && ch <= '9'.toInt() || ch == '.'.toInt()) {
-                            while (ch >= '0'.toInt() && ch <= '9'.toInt() || ch == '.'.toInt()) nextChar()
+                            eat(')'.code)
+                            lastWasPercent = false
+                        } else if (ch >= '0'.code && ch <= '9'.code || ch == '.'.code) {
+                            while (ch >= '0'.code && ch <= '9'.code || ch == '.'.code) nextChar()
                             x = java.lang.Double.parseDouble(str.substring(startPos, pos))
+                            lastWasPercent = false
                         } else {
                             throw RuntimeException("Unexpected: " + ch.toChar())
+                        }
+
+                        if (eat('%'.code)) {
+                            x /= 100.0
+                            lastWasPercent = true
                         }
                         return x
                     }
                 }.parse()
             }
-        }.eval(cleanExpr)
+        }.eval(finalExpr)
         
-        if (res % 1.0 == 0.0) res.toInt().toString() else DecimalFormat("#.####").format(res)
+        if (res.isInfinite() || res.isNaN()) return "Error"
+        
+        // Use scientific notation for extreme values (above 1 quadrillion or very tiny)
+        if (Math.abs(res) >= 1e15 || (Math.abs(res) < 1e-9 && res != 0.0)) {
+            return java.text.DecimalFormat("0.########E0").format(res).lowercase().replace("e", "e+")
+        }
+        
+        val df = DecimalFormat("#.##########")
+        if (res % 1.0 == 0.0) {
+            // For large integers, ensure they don't get scientific notation from Double.toString()
+            return res.toLong().toString()
+        } else {
+            return df.format(res)
+        }
     } catch (e: Exception) {
-        "Error"
+        "" // Silent error for live calculation
     }
 }

@@ -5,6 +5,7 @@
 
 package com.fahmicode.ui.screens
 
+import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -2521,13 +2522,29 @@ fun SettingsScreen(
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(
                             onClick = {
-                                clipboard.setText(AnnotatedString(backupString))
-                                Toast.makeText(context, "Backup copied!", Toast.LENGTH_SHORT).show()
+                                try {
+                                    val timeStamp = SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(Date())
+                                    val fileName = "budgetpecker_backup_$timeStamp.json"
+                                    val sendIntent: Intent = Intent().apply {
+                                        action = Intent.ACTION_SEND
+                                        putExtra(Intent.EXTRA_TEXT, backupString)
+                                        putExtra(Intent.EXTRA_SUBJECT, fileName)
+                                        type = "text/plain"
+                                    }
+                                    val shareIntent = Intent.createChooser(sendIntent, null)
+                                    context.startActivity(shareIntent)
+                                    Toast.makeText(context, "Backup Exported Successfully!", Toast.LENGTH_SHORT).show()
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "Export Failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                                }
                             },
                             modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E2A38))
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            )
                         ) {
-                            Text("Copy JSON", fontSize = 11.sp)
+                            Text("Export JSON", fontSize = 11.sp)
                         }
                         
                         OutlinedButton(
@@ -2568,17 +2585,26 @@ fun SettingsScreen(
                 Button(
                     onClick = {
                         if (jsonPasteContent.isNotBlank()) {
-                            val success = viewModel.importBackupFromJson(jsonPasteContent)
-                            if (success) {
-                                Toast.makeText(context, "Import successful!", Toast.LENGTH_SHORT).show()
-                                showImportDialog = false
-                                jsonPasteContent = ""
-                            } else {
-                                Toast.makeText(context, "Invalid format!", Toast.LENGTH_SHORT).show()
+                            try {
+                                val success = viewModel.importBackupFromJson(jsonPasteContent)
+                                if (success) {
+                                    Toast.makeText(context, "Data Restored Successfully!", Toast.LENGTH_SHORT).show()
+                                    showImportDialog = false
+                                    jsonPasteContent = ""
+                                } else {
+                                    Toast.makeText(context, "Invalid Backup Format!", Toast.LENGTH_SHORT).show()
+                                }
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Restore Failed: ${e.message}", Toast.LENGTH_SHORT).show()
                             }
+                        } else {
+                            Toast.makeText(context, "Please paste JSON content", Toast.LENGTH_SHORT).show()
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E2A38))
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
                 ) {
                     Text("Restore")
                 }

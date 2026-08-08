@@ -7,6 +7,8 @@ package com.fahmicode.ui.screens
 
 import android.content.Intent
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -120,6 +122,8 @@ import com.fahmicode.data.model.Transaction
 import com.fahmicode.ui.MainViewModel
 import java.text.DecimalFormat
 import java.text.SimpleDateFormat
+import java.io.BufferedReader
+import java.io.InputStreamReader
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
@@ -2273,6 +2277,23 @@ fun SettingsScreen(
     val clipboard = LocalClipboardManager.current
     val context = LocalContext.current
 
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let {
+            try {
+                context.contentResolver.openInputStream(it)?.use { inputStream ->
+                    val reader = BufferedReader(InputStreamReader(inputStream))
+                    val content = reader.readText()
+                    jsonPasteContent = content
+                    Toast.makeText(context, "File Loaded Successfully!", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(context, "Error reading file: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -2519,39 +2540,55 @@ fun SettingsScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("Export your data as JSON for backup or import a previous backup.")
                     
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(
-                            onClick = {
-                                try {
-                                    val timeStamp = SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(Date())
-                                    val fileName = "budgetpecker_backup_$timeStamp.json"
-                                    val sendIntent: Intent = Intent().apply {
-                                        action = Intent.ACTION_SEND
-                                        putExtra(Intent.EXTRA_TEXT, backupString)
-                                        putExtra(Intent.EXTRA_SUBJECT, fileName)
-                                        type = "text/plain"
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(
+                                onClick = {
+                                    try {
+                                        val timeStamp = SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(Date())
+                                        val fileName = "budgetpecker_backup_$timeStamp.json"
+                                        val sendIntent: Intent = Intent().apply {
+                                            action = Intent.ACTION_SEND
+                                            putExtra(Intent.EXTRA_TEXT, backupString)
+                                            putExtra(Intent.EXTRA_SUBJECT, fileName)
+                                            type = "text/plain"
+                                        }
+                                        val shareIntent = Intent.createChooser(sendIntent, null)
+                                        context.startActivity(shareIntent)
+                                        Toast.makeText(context, "Backup Exported Successfully!", Toast.LENGTH_SHORT).show()
+                                    } catch (e: Exception) {
+                                        Toast.makeText(context, "Export Failed: ${e.message}", Toast.LENGTH_SHORT).show()
                                     }
-                                    val shareIntent = Intent.createChooser(sendIntent, null)
-                                    context.startActivity(shareIntent)
-                                    Toast.makeText(context, "Backup Exported Successfully!", Toast.LENGTH_SHORT).show()
-                                } catch (e: Exception) {
-                                    Toast.makeText(context, "Export Failed: ${e.message}", Toast.LENGTH_SHORT).show()
-                                }
-                            },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary
-                            )
-                        ) {
-                            Text("Export JSON", fontSize = 11.sp)
+                                },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary
+                                )
+                            ) {
+                                Text("Export JSON", fontSize = 11.sp)
+                            }
+                            
+                            Button(
+                                onClick = {
+                                    clipboard.setText(AnnotatedString(backupString))
+                                    Toast.makeText(context, "JSON Copied to Clipboard!", Toast.LENGTH_SHORT).show()
+                                },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary
+                                )
+                            ) {
+                                Text("Copy JSON", fontSize = 11.sp)
+                            }
                         }
-                        
+
                         OutlinedButton(
                             onClick = { showImportDialog = true; showExportDialog = false },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Import JSON", fontSize = 11.sp)
+                            Text("Import Backup", fontSize = 11.sp)
                         }
                     }
                 }
@@ -2571,7 +2608,16 @@ fun SettingsScreen(
             title = { Text("Import Backup", fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Paste your backup JSON code below. This will replace all current data!")
+                    Text("Paste your backup JSON or select a file. This will replace all current data!")
+                    
+                    OutlinedButton(
+                        onClick = { filePickerLauncher.launch("application/json") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("Select JSON File")
+                    }
+
                     OutlinedTextField(
                         value = jsonPasteContent,
                         onValueChange = { jsonPasteContent = it },

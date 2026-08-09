@@ -10,6 +10,9 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.core.content.FileProvider
+import java.io.File
+import java.io.FileOutputStream
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -2342,6 +2345,7 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .weight(1f)
                                 .aspectRatio(1f)
+                                .clip(RoundedCornerShape(16.dp))
                                 .clickable { onClick() },
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
                             border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
@@ -2548,13 +2552,29 @@ fun SettingsScreen(
                                         val timeStamp = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.getDefault()).format(java.util.Date())
                                         val fileName = "budgetpecker_backup_$timeStamp.json"
                                         val currentBackupString = viewModel.exportBackupToJson()
+
+                                        // Create a temporary file in the cache directory
+                                        val exportDir = File(context.cacheDir, "exports")
+                                        if (!exportDir.exists()) exportDir.mkdirs()
+                                        
+                                        val exportFile = File(exportDir, fileName)
+                                        FileOutputStream(exportFile).use { it.write(currentBackupString.toByteArray()) }
+
+                                        // Get URI using FileProvider
+                                        val contentUri = FileProvider.getUriForFile(
+                                            context,
+                                            "com.fahmicode.fileprovider",
+                                            exportFile
+                                        )
+
                                         val sendIntent: Intent = Intent().apply {
                                             action = Intent.ACTION_SEND
-                                            putExtra(Intent.EXTRA_TEXT, currentBackupString)
+                                            putExtra(Intent.EXTRA_STREAM, contentUri)
                                             putExtra(Intent.EXTRA_SUBJECT, fileName)
-                                            type = "text/plain"
+                                            type = "application/json"
+                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                         }
-                                        val shareIntent = Intent.createChooser(sendIntent, null)
+                                        val shareIntent = Intent.createChooser(sendIntent, "Export Backup")
                                         context.startActivity(shareIntent)
                                         Toast.makeText(context, "Backup Exported Successfully!", Toast.LENGTH_SHORT).show()
                                     } catch (e: Exception) {

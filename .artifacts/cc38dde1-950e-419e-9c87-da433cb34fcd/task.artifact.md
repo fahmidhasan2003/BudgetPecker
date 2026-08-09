@@ -1,0 +1,5 @@
+- [x] Add `import androidx.navigation.NavGraph.Companion.findStartDestination` to `MainActivity.kt`
+- [x] Update `BottomNavigationBar` navigation logic in `MainActivity.kt`
+- [x] Update `SettingsScreen` (More menu) navigation calls in `MainActivity.kt`
+- [x] Update `onSeeMore` navigation in `NavigationHost`
+- [x] Verify build and navigation consistency

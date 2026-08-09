@@ -33,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.*
 import com.fahmicode.ui.MainViewModel
@@ -119,11 +120,23 @@ class MainActivity : ComponentActivity() {
                                             onDismiss = { showMoreMenu = false },
                                             onNotepadClick = {
                                                 showMoreMenu = false
-                                                navController.navigate(BottomNavItem.Notes.route)
+                                                navController.navigate(BottomNavItem.Notes.route) {
+                                                    popUpTo(navController.graph.findStartDestination().id) {
+                                                        saveState = true
+                                                    }
+                                                    launchSingleTop = true
+                                                    restoreState = true
+                                                }
                                             },
                                             onCalculatorClick = {
                                                 showMoreMenu = false
-                                                navController.navigate(BottomNavItem.Calculator.route)
+                                                navController.navigate(BottomNavItem.Calculator.route) {
+                                                    popUpTo(navController.graph.findStartDestination().id) {
+                                                        saveState = true
+                                                    }
+                                                    launchSingleTop = true
+                                                    restoreState = true
+                                                }
                                             }
                                         )
                                     }
@@ -255,8 +268,8 @@ fun BottomNavigationBar(
                 onClick = {
                     if (isAdd) {
                         navController.navigate(BottomNavItem.History.route) {
-                            navController.graph.startDestinationRoute?.let { route ->
-                                popUpTo(route) { saveState = true }
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
                             }
                             launchSingleTop = true
                             restoreState = true
@@ -266,8 +279,8 @@ fun BottomNavigationBar(
                         onShowMore()
                     } else {
                         navController.navigate(item.route) {
-                            navController.graph.startDestinationRoute?.let { route ->
-                                popUpTo(route) { saveState = true }
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
                             }
                             launchSingleTop = true
                             restoreState = true
@@ -301,8 +314,8 @@ fun NavigationHost(
         composable(BottomNavItem.Dashboard.route) {
             DashboardScreen(viewModel, onSeeMore = {
                 navController.navigate(BottomNavItem.History.route) {
-                    navController.graph.startDestinationRoute?.let { route ->
-                        popUpTo(route) { saveState = true }
+                    popUpTo(navController.graph.findStartDestination().id) {
+                        saveState = true
                     }
                     launchSingleTop = true
                     restoreState = true

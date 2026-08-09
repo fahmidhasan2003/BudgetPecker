@@ -2545,11 +2545,12 @@ fun SettingsScreen(
                             Button(
                                 onClick = {
                                     try {
-                                        val timeStamp = SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(Date())
+                                        val timeStamp = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.getDefault()).format(java.util.Date())
                                         val fileName = "budgetpecker_backup_$timeStamp.json"
+                                        val currentBackupString = viewModel.exportBackupToJson()
                                         val sendIntent: Intent = Intent().apply {
                                             action = Intent.ACTION_SEND
-                                            putExtra(Intent.EXTRA_TEXT, backupString)
+                                            putExtra(Intent.EXTRA_TEXT, currentBackupString)
                                             putExtra(Intent.EXTRA_SUBJECT, fileName)
                                             type = "text/plain"
                                         }
@@ -2571,7 +2572,8 @@ fun SettingsScreen(
                             
                             Button(
                                 onClick = {
-                                    clipboard.setText(AnnotatedString(backupString))
+                                    val currentBackupString = viewModel.exportBackupToJson()
+                                    clipboard.setText(AnnotatedString(currentBackupString))
                                     Toast.makeText(context, "JSON Copied to Clipboard!", Toast.LENGTH_SHORT).show()
                                 },
                                 modifier = Modifier.weight(1f),
@@ -2608,7 +2610,7 @@ fun SettingsScreen(
             title = { Text("Import Backup", fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Paste your backup JSON or select a file. This will replace all current data!")
+                    Text("Paste your backup JSON or select a file. This will merge with your existing data!")
                     
                     OutlinedButton(
                         onClick = { filePickerLauncher.launch("application/json") },

@@ -425,9 +425,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val bgArray = root.optJSONArray("budgets")
 
             viewModelScope.launch {
-                // Wipe first as per standard Restore action
-                repository.clearAllData()
-
                 if (txArray != null) {
                     for (i in 0 until txArray.length()) {
                         val obj = txArray.getJSONObject(i)

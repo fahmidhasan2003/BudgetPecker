@@ -5,16 +5,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.*
+import com.fahmicode.data.model.FabAction
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -32,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -62,7 +61,7 @@ class MainActivity : ComponentActivity() {
             BudgetPeckerTheme(darkTheme = isDark) {
                 val navController = rememberNavController()
                 var showMoreMenu by remember { mutableStateOf(false) }
-                var showNotesPopup by remember { mutableStateOf(false) }
+                var showNoteSpeedDial by remember { mutableStateOf(false) }
 
                 Box(modifier = Modifier.fillMaxSize()) {
                     Scaffold(
@@ -71,7 +70,8 @@ class MainActivity : ComponentActivity() {
                             BottomNavigationBar(
                                 navController = navController,
                                 mainViewModel = mainViewModel,
-                                onShowMore = { showMoreMenu = !showMoreMenu }
+                                onShowMore = { showMoreMenu = !showMoreMenu },
+                                onNoteFabClick = { showNoteSpeedDial = !showNoteSpeedDial }
                             )
                         }
                     ) { innerPadding: PaddingValues ->
@@ -81,6 +81,66 @@ class MainActivity : ComponentActivity() {
                                 viewModel = mainViewModel,
                                 modifier = Modifier.padding(innerPadding)
                             )
+
+                            if (showNoteSpeedDial) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(Color.Black.copy(alpha = 0.3f))
+                                        .clickable(
+                                            interactionSource = remember { MutableInteractionSource() },
+                                            indication = null
+                                        ) { showNoteSpeedDial = false }
+                                )
+                                
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(innerPadding),
+                                    contentAlignment = Alignment.BottomCenter
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                                        modifier = Modifier
+                                            .padding(bottom = 96.dp) // Pushed above BottomBar + FAB
+                                            .wrapContentSize()
+                                    ) {
+                                        SpeedDialItem(
+                                            label = "Audio",
+                                            icon = Icons.Default.Mic,
+                                            onClick = { 
+                                                mainViewModel.triggerNoteAction(FabAction.Audio)
+                                                showNoteSpeedDial = false 
+                                            }
+                                        )
+                                        SpeedDialItem(
+                                            label = "Image",
+                                            icon = Icons.Default.Image,
+                                            onClick = { 
+                                                mainViewModel.triggerNoteAction(FabAction.Image)
+                                                showNoteSpeedDial = false 
+                                            }
+                                        )
+                                        SpeedDialItem(
+                                            label = "Calculation Table",
+                                            icon = Icons.Default.TableChart,
+                                            onClick = { 
+                                                mainViewModel.triggerNoteAction(FabAction.CalculationTable)
+                                                showNoteSpeedDial = false 
+                                            }
+                                        )
+                                        SpeedDialItem(
+                                            label = "Text Note",
+                                            icon = Icons.Default.EditNote,
+                                            onClick = { 
+                                                mainViewModel.triggerNoteAction(FabAction.TextNote)
+                                                showNoteSpeedDial = false 
+                                            }
+                                        )
+                                    }
+                                }
+                            }
 
                             if (showMoreMenu) {
                                 // Semi-transparent background that dismisses the menu
@@ -164,27 +224,7 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    if (showNotesPopup) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(Color.Black.copy(alpha = 0.4f))
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null
-                                ) { showNotesPopup = false },
-                            contentAlignment = Alignment.BottomCenter
-                        ) {
-                            NotesPopup(
-                                viewModel = mainViewModel,
-                                onExpand = {
-                                    showNotesPopup = false
-                                    navController.navigate(BottomNavItem.Notes.route)
-                                },
-                                onDismiss = { showNotesPopup = false }
-                            )
-                        }
-                    }
+
                 }
             }
         }
@@ -195,7 +235,8 @@ class MainActivity : ComponentActivity() {
 fun BottomNavigationBar(
     navController: NavHostController,
     mainViewModel: MainViewModel,
-    onShowMore: () -> Unit
+    onShowMore: () -> Unit,
+    onNoteFabClick: () -> Unit
 ) {
     val items = listOf(
         BottomNavItem.Dashboard,
@@ -251,14 +292,18 @@ fun BottomNavigationBar(
                 ),
                 onClick = {
                     if (isAdd) {
-                        navController.navigate(BottomNavItem.History.route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
+                        if (currentRoute == BottomNavItem.Notes.route) {
+                            onNoteFabClick()
+                        } else {
+                            navController.navigate(BottomNavItem.History.route) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
                             }
-                            launchSingleTop = true
-                            restoreState = true
+                            mainViewModel.showAddTransactionDialog.value = true
                         }
-                        mainViewModel.showAddTransactionDialog.value = true
                     } else if (isMore) {
                         onShowMore()
                     } else {
@@ -272,6 +317,50 @@ fun BottomNavigationBar(
                     }
                 }
             )
+        }
+    }
+}
+
+@Composable
+fun SpeedDialItem(
+    label: String,
+    icon: ImageVector,
+    onClick: () -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier
+            .padding(end = 4.dp)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) { onClick() }
+    ) {
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 6.dp,
+            shadowElevation = 2.dp,
+            border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+        ) {
+            Text(
+                text = label,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+        
+        FloatingActionButton(
+            onClick = onClick,
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            shape = CircleShape,
+            modifier = Modifier.size(44.dp),
+            elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
+        ) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(24.dp))
         }
     }
 }

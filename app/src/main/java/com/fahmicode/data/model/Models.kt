@@ -26,14 +26,42 @@ data class ChecklistItem(
     var isChecked: Boolean = false
 )
 
+data class TextSpan(
+    val text: String,
+    val isBold: Boolean = false,
+    val isItalic: Boolean = false,
+    val colorHex: Int? = null
+)
+
+data class RichTextContent(
+    val spans: List<TextSpan> = emptyList()
+)
+
+data class CalculationItem(
+    val description: String,
+    val amount: Double
+)
+
+data class CalculationTable(
+    val items: List<CalculationItem> = emptyList(),
+    val total: Double = 0.0
+)
+
 @Entity(tableName = "notes")
 data class Note(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val title: String,
-    val content: String,
-    val checklistItems: List<ChecklistItem> = emptyList(),
-    val amount: Double? = null,
-    val expenseCategory: String? = null,
-    val dateMillis: Long = System.currentTimeMillis(),
-    val colorHex: Long = 0xFFFFFFFF
+    val content: String, // Plain text for search and preview
+    val contentJson: String = "", // Rich text JSON
+    val category: String = "General",
+    val updatedAt: Long = System.currentTimeMillis(),
+    val containsTable: Boolean = false,
+    val tableDataJson: String? = null,
+    val imageUrl: String? = null,
+    val audioUrl: String? = null,
+    val colorHex: Long = 0xFF121212
 )
+
+enum class FabAction {
+    TextNote, CalculationTable, Image, Audio
+}

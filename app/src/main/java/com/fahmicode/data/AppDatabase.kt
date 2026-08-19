@@ -14,7 +14,7 @@ import com.fahmicode.data.model.Transaction
 import com.fahmicode.data.model.Budget
 import com.fahmicode.data.model.Note
 
-@Database(entities = [Transaction::class, Budget::class, Note::class], version = 2, exportSchema = false)
+@Database(entities = [Transaction::class, Budget::class, Note::class], version = 3, exportSchema = false)
 @TypeConverters(NoteTypeConverter::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionDao
@@ -41,6 +41,7 @@ abstract class AppDatabase : RoomDatabase() {
                     "budgetpecker_database"
                 )
                 .addMigrations(MIGRATION_1_2)
+                .fallbackToDestructiveMigration()
                 .build()
                 INSTANCE = instance
                 instance

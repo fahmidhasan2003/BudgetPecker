@@ -11,16 +11,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = PureWhite,
+    primary = AccentColor,
     secondary = LightGray,
-    background = PureBlack,
+    background = DarkBackground,
     surface = DarkGray,
-    onPrimary = PureBlack,
-    onSecondary = PureBlack,
+    onPrimary = DarkBackground,
+    onSecondary = DarkBackground,
     onBackground = PureWhite,
     onSurface = PureWhite,
     outline = DarkDivider,
-    tertiary = PrimaryBlue,
+    tertiary = AccentColor,
     error = ExpenseColor
 )
 

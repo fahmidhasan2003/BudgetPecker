@@ -23,6 +23,9 @@ import com.fahmicode.ui.screens.ExpenseCategoryPresets
 import com.fahmicode.ui.screens.IncomeCategoryPresets
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import com.fahmicode.data.model.FabAction
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.json.JSONArray
@@ -62,6 +65,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     var exchangeRates = mutableStateMapOf<String, Double>()
     var lastRatesUpdate = mutableStateOf("N/A")
     var isLiveRates = mutableStateOf(false)
+
+    private val _noteActionTrigger = MutableSharedFlow<FabAction>()
+    val noteActionTrigger = _noteActionTrigger.asSharedFlow()
+
+    fun triggerNoteAction(action: FabAction) {
+        viewModelScope.launch {
+            _noteActionTrigger.emit(action)
+        }
+    }
 
     init {
         val database = AppDatabase.getDatabase(application)

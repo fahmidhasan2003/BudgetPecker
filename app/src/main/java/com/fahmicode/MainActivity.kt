@@ -332,7 +332,10 @@ fun NavigationHost(
             )
         }
         composable(BottomNavItem.Calculator.route) {
-            CalculatorScreen(viewModel = viewModel)
+            CalculatorScreen(
+                viewModel = viewModel,
+                onBackClick = { navController.popBackStack() }
+            )
         }
     }
 }

@@ -1,28 +1,40 @@
-# Fix Navigation Issue with Calculator & Dashboard
+# Implementation Plan - Add Back Arrow to CalculatorScreen
 
-The user reports that when navigating to the Calculator screen, clicking "Dashboard" in the bottom navigation bar does not return them to the Dashboard, effectively "sticking" them on the Calculator screen. This is likely due to inconsistent or incorrect `popUpTo` logic in the navigation calls.
+The user wants to add a back arrow icon button to the `CalculatorScreen` for better navigation, especially when the screen is opened from the "More" menu.
 
 ## Proposed Changes
 
-I will update the navigation logic in `MainActivity.kt` to use the idiomatic `popUpTo(navController.graph.findStartDestination().id)` pattern for all top-level-like navigation. This ensures that the backstack is correctly managed and that navigating to the start destination (Dashboard) always pops intermediate screens like the Calculator.
+### UI Implementation in `CalculatorScreen`
+
+1.  **Modify Signature**: Update `CalculatorScreen` to accept `onBackClick: () -> Unit`.
+2.  **Add Back Button**:
+    - Wrap the header area in a `Box` to allow the back button to be placed in the top-left while keeping the title centered (or adjust the `Row` layout).
+    - Use `IconButton` with `Icons.AutoMirrored.Filled.ArrowBack`.
+    - Style the icon to match the app's theme.
+
+### Navigation Logic in `MainActivity`
+
+1.  **Update NavigationHost**: Pass `navController.popBackStack()` to the `onBackClick` parameter of `CalculatorScreen`.
+
+## Proposed Changes
 
 ### app
 
-#### [MODIFY] [MainActivity.kt](file:///H:/FAHMID/budgetpecker/app/src/main/java/com/fahmicode/MainActivity.kt)
+#### [MODIFY] [CalculatorScreen.kt](file:///H:/FAHMID/budgetpecker/app/src/main/java/com/fahmicode/ui/screens/CalculatorScreen.kt)
+- Update `CalculatorScreen` signature.
+- Implement the Back Arrow button in the header.
 
-1.  Add `import androidx.navigation.NavGraph.Companion.findStartDestination` to enable the idiomatic way of finding the start destination ID.
-2.  Update `BottomNavigationBar` to use `popUpTo(navController.graph.findStartDestination().id)` in the `onClick` handler.
-3.  Update the navigation calls for `Notes` and `Calculator` in `MainActivity.onCreate` (within the `SettingsScreen` overlay) to also use the `popUpTo` pattern. This ensures that opening these screens from the "More" menu doesn't build an unnecessary backstack.
-4.  Update the `onSeeMore` navigation in `NavigationHost` to use the same pattern.
+#### [MODIFY] [MainActivity.kt](file:///H:/FAHMID/budgetpecker/app/src/main/java/com/fahmicode/MainActivity.kt)
+- Update the `NavigationHost` route for `BottomNavItem.Calculator.route` to pass the back callback.
 
 ## Verification Plan
 
+### Automated Tests
+- Run `./gradlew :app:assembleDebug` to ensure no syntax errors.
+
 ### Manual Verification
-- Deploy the app.
-- Navigate to the Dashboard.
-- Open the "More" menu and click "Calculator".
-- Verify that the Calculator screen is shown.
-- Click the "Dashboard" icon in the Bottom Navigation Bar.
-- **Expected Result:** The app should navigate back to the Dashboard screen.
-- Verify similar behavior for the "Notes" screen.
-- Verify that clicking "History" or "Budget" also correctly pops the Calculator/Notes screens.
+1.  Open the app.
+2.  Navigate to the "More" menu.
+3.  Click "Calculator".
+4.  Verify that a back arrow appears at the top-left of the Calculator screen.
+5.  Click the back arrow and verify it returns to the previous screen (More menu).

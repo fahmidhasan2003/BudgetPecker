@@ -59,7 +59,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     var calculatorHistory = mutableStateListOf<String>()
 
     // Currency Converter States
-    var showConverter = mutableStateOf(false)
     var exchangeRates = mutableStateMapOf<String, Double>()
     var lastRatesUpdate = mutableStateOf("N/A")
     var isLiveRates = mutableStateOf(false)

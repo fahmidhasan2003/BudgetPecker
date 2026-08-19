@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -24,6 +23,7 @@ import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Calculate
+import androidx.compose.material.icons.filled.CurrencyExchange
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material3.*
@@ -48,6 +48,7 @@ sealed class BottomNavItem(val route: String, val title: String, val icon: Image
     object More : BottomNavItem("settings", "More", Icons.Default.GridView)
     object Notes : BottomNavItem("notes", "Notes", Icons.AutoMirrored.Filled.Notes)
     object Calculator : BottomNavItem("calculator", "Calculator", Icons.Default.Calculate)
+    object Converter : BottomNavItem("converter", "Converter", Icons.Default.CurrencyExchange)
 }
 
 class MainActivity : ComponentActivity() {
@@ -137,37 +138,20 @@ class MainActivity : ComponentActivity() {
                                                     launchSingleTop = true
                                                     restoreState = true
                                                 }
+                                            },
+                                            onConverterClick = {
+                                                showMoreMenu = false
+                                                navController.navigate(BottomNavItem.Converter.route) {
+                                                    popUpTo(navController.graph.findStartDestination().id) {
+                                                        saveState = true
+                                                    }
+                                                    launchSingleTop = true
+                                                    restoreState = true
+                                                }
                                             }
                                         )
                                     }
                                 }
-                            }
-                        }
-                    }
-
-                    val showConverter by mainViewModel.showConverter
-                    if (showConverter) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(Color.Black.copy(alpha = 0.4f))
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null
-                                ) { mainViewModel.showConverter.value = false },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth(0.85f)
-                                    .wrapContentHeight(),
-                                shape = RoundedCornerShape(28.dp),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 16.dp)
-                            ) {
-                                CurrencyConverterContent(
-                                    viewModel = mainViewModel,
-                                    onDismiss = { mainViewModel.showConverter.value = false }
-                                )
                             }
                         }
                     }
@@ -333,6 +317,12 @@ fun NavigationHost(
         }
         composable(BottomNavItem.Calculator.route) {
             CalculatorScreen(
+                viewModel = viewModel,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+        composable(BottomNavItem.Converter.route) {
+            CurrencyConverterScreen(
                 viewModel = viewModel,
                 onBackClick = { navController.popBackStack() }
             )

@@ -1,3 +1,5 @@
-- [x] Update `CalculatorScreen` signature and add Back Arrow UI in `CalculatorScreen.kt`
-- [x] Update `CalculatorScreen` route in `MainActivity.kt` to handle `onBackClick`
-- [x] Verify build and UI layout
+- [x] Add `isEvaluated` state to `CalculatorScreen` in `CalculatorScreen.kt`
+- [x] Refactor `onAction` logic to handle evaluated state and result promotion
+- [x] Update Display Card UI with dynamic styling for expression and result
+- [x] Verify build and interactive logic
+- [x] Update animation duration to 400ms in `CalculatorScreen.kt`

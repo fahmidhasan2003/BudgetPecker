@@ -1,6 +1,8 @@
 package com.fahmicode.ui.screens
 
 import android.widget.Toast
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -38,6 +40,7 @@ fun CalculatorScreen(
 ) {
     var expression by remember { mutableStateOf("") }
     var liveResult by remember { mutableStateOf("") }
+    var isEvaluated by remember { mutableStateOf(false) }
     var showHistory by remember { mutableStateOf(false) }
 
     val clipboard = LocalClipboardManager.current
@@ -62,57 +65,94 @@ fun CalculatorScreen(
     }
 
     val onAction: (String) -> Unit = { action ->
-        when (action) {
-            "AC" -> {
-                expression = ""
-                liveResult = ""
-            }
-            "⌫" -> {
-                if (expression.isNotEmpty()) {
-                    expression = expression.dropLast(1)
-                    liveResult = if (expression.isNotEmpty()) evaluateExpression(expression) else ""
+        if (isEvaluated) {
+            when {
+                action == "AC" -> {
+                    expression = ""
+                    liveResult = ""
+                    isEvaluated = false
                 }
-            }
-            "00" -> {
-                if (expression.isNotEmpty() && expression.last().isDigit()) {
-                    expression += "00"
-                    liveResult = evaluateExpression(expression)
-                }
-            }
-            "." -> {
-                if (canAddDecimal(expression)) {
-                    expression += if (expression.isEmpty() || !expression.last().isDigit()) "0." else "."
-                }
-            }
-            "=" -> {
-                if (expression.isNotBlank()) {
-                    val evaluated = evaluateExpression(expression)
-                    if (evaluated != "Error" && evaluated.isNotEmpty()) {
-                        viewModel.addToCalculatorHistory("$expression = $evaluated")
-                        expression = evaluated
-                        liveResult = ""
+                action == "⌫" -> {
+                    isEvaluated = false
+                    // Continue with normal backspace logic
+                    if (expression.isNotEmpty()) {
+                        expression = expression.dropLast(1)
+                        liveResult = if (expression.isNotEmpty()) evaluateExpression(expression) else ""
                     }
                 }
-            }
-            "copy" -> {
-                val toCopy = if (liveResult.isNotEmpty()) liveResult else expression
-                if (toCopy.isNotBlank() && toCopy != "Error") {
-                    clipboard.setText(AnnotatedString(toCopy))
-                    Toast.makeText(context, "Result copied!", Toast.LENGTH_SHORT).show()
+                "+-×÷%".contains(action) -> {
+                    expression = liveResult + action
+                    liveResult = evaluateExpression(expression)
+                    isEvaluated = false
+                }
+                action == "copy" -> {
+                    val toCopy = liveResult.ifEmpty { expression }
+                    if (toCopy.isNotBlank() && toCopy != "Error") {
+                        clipboard.setText(AnnotatedString(toCopy))
+                        Toast.makeText(context, "Result copied!", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                action == "=" -> { /* Do nothing, already evaluated */ }
+                else -> {
+                    // Digit or decimal - start fresh
+                    expression = if (action == ".") "0." else action
+                    liveResult = evaluateExpression(expression)
+                    isEvaluated = false
                 }
             }
-            else -> {
-                // Prevent starting with operator except minus
-                if (expression.isEmpty() && "+×÷%".contains(action)) {
-                    // Do nothing
-                } else {
-                    // Prevent multiple operators in a row
-                    if (expression.isNotEmpty() && "+-×÷%.".contains(expression.last().toString()) && "+-×÷%.".contains(action)) {
-                        expression = expression.dropLast(1) + action
+        } else {
+            when (action) {
+                "AC" -> {
+                    expression = ""
+                    liveResult = ""
+                }
+                "⌫" -> {
+                    if (expression.isNotEmpty()) {
+                        expression = expression.dropLast(1)
+                        liveResult = if (expression.isNotEmpty()) evaluateExpression(expression) else ""
+                    }
+                }
+                "00" -> {
+                    if (expression.isNotEmpty() && expression.last().isDigit()) {
+                        expression += "00"
+                        liveResult = evaluateExpression(expression)
+                    }
+                }
+                "." -> {
+                    if (canAddDecimal(expression)) {
+                        expression += if (expression.isEmpty() || !expression.last().isDigit()) "0." else "."
+                    }
+                }
+                "=" -> {
+                    if (expression.isNotBlank()) {
+                        val evaluated = evaluateExpression(expression)
+                        if (evaluated != "Error" && evaluated.isNotEmpty()) {
+                            viewModel.addToCalculatorHistory("$expression = $evaluated")
+                            liveResult = evaluated
+                            isEvaluated = true
+                        }
+                    }
+                }
+                "copy" -> {
+                    val toCopy = if (liveResult.isNotEmpty()) liveResult else expression
+                    if (toCopy.isNotBlank() && toCopy != "Error") {
+                        clipboard.setText(AnnotatedString(toCopy))
+                        Toast.makeText(context, "Result copied!", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                else -> {
+                    // Prevent starting with operator except minus
+                    if (expression.isEmpty() && "+×÷%".contains(action)) {
+                        // Do nothing
                     } else {
-                        expression += action
+                        // Prevent multiple operators in a row
+                        if (expression.isNotEmpty() && "+-×÷%.".contains(expression.last().toString()) && "+-×÷%.".contains(action)) {
+                            expression = expression.dropLast(1) + action
+                        } else {
+                            expression += action
+                        }
+                        liveResult = evaluateExpression(expression)
                     }
-                    liveResult = evaluateExpression(expression)
                 }
             }
         }
@@ -323,11 +363,23 @@ fun CalculatorScreen(
                             Column(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .padding(horizontal = 24.dp, vertical = 32.dp),
+                                    .padding(horizontal = 24.dp, vertical = 24.dp),
                                 horizontalAlignment = Alignment.End,
                                 verticalArrangement = Arrangement.Bottom
                             ) {
-                                // Scrollable Expression showing END
+                                // Expression View
+                                val expressionFontSize by animateFloatAsState(
+                                    targetValue = if (isEvaluated) 26f else 40f,
+                                    animationSpec = tween(durationMillis = 400),
+                                    label = "expressionFontSize"
+                                )
+                                val expressionColor = if (isEvaluated) {
+                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                } else {
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
+                                }
+                                val expressionWeight = if (isEvaluated) FontWeight.Normal else FontWeight.Bold
+
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -337,27 +389,34 @@ fun CalculatorScreen(
                                     Text(
                                         text = expression.ifEmpty { "0" },
                                         style = MaterialTheme.typography.headlineMedium.copy(
-                                            fontSize = 28.sp,
-                                            fontWeight = FontWeight.Medium
+                                            fontSize = expressionFontSize.sp,
+                                            fontWeight = expressionWeight
                                         ),
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                        color = expressionColor,
                                         maxLines = 1,
                                         fontFamily = FontFamily.SansSerif,
                                         textAlign = TextAlign.End
                                     )
                                 }
                                 
-                                Spacer(Modifier.height(20.dp))
+                                Spacer(Modifier.height(if (isEvaluated) 8.dp else 12.dp))
                                 
-                                // Auto-scaling font size for result
-                                val resultFontSize = remember(liveResult) {
-                                    when {
-                                        liveResult.length <= 10 -> 54.sp
-                                        liveResult.length <= 14 -> 42.sp
-                                        liveResult.length <= 18 -> 32.sp
-                                        else -> 24.sp
-                                    }
+                                // Result View
+                                val resultFontSizeBase = if (isEvaluated) 40f else 26f
+                                val resultFontSize by animateFloatAsState(
+                                    targetValue = when {
+                                        isEvaluated && liveResult.length > 10 -> (resultFontSizeBase * 0.8f)
+                                        else -> resultFontSizeBase
+                                    },
+                                    animationSpec = tween(durationMillis = 400),
+                                    label = "resultFontSize"
+                                )
+                                val resultColor = if (isEvaluated) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                                 }
+                                val resultWeight = if (isEvaluated) FontWeight.Bold else FontWeight.Normal
 
                                 Row(
                                     modifier = Modifier
@@ -366,12 +425,12 @@ fun CalculatorScreen(
                                     horizontalArrangement = Arrangement.End
                                 ) {
                                     Text(
-                                        text = liveResult.ifEmpty { "" },
+                                        text = liveResult.ifEmpty { if (isEvaluated) "0" else "" },
                                         style = MaterialTheme.typography.displayLarge.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = resultFontSize
+                                            fontWeight = resultWeight,
+                                            fontSize = resultFontSize.sp
                                         ),
-                                        color = MaterialTheme.colorScheme.primary,
+                                        color = resultColor,
                                         textAlign = TextAlign.End,
                                         maxLines = 1,
                                         fontFamily = FontFamily.SansSerif

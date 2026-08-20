@@ -59,7 +59,8 @@ data class Note(
     val tableDataJson: String? = null,
     val imageUrl: String? = null,
     val audioUrl: String? = null,
-    val colorHex: Long = 0xFF121212
+    val colorHex: Long = 0xFF121212,
+    val isPinned: Boolean = false
 )
 
 enum class FabAction {

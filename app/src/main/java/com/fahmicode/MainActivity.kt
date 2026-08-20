@@ -86,7 +86,7 @@ class MainActivity : ComponentActivity() {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .background(Color.Black.copy(alpha = 0.3f))
+                                        .background(Color.Black.copy(alpha = 0.5f))
                                         .clickable(
                                             interactionSource = remember { MutableInteractionSource() },
                                             indication = null
@@ -100,10 +100,10 @@ class MainActivity : ComponentActivity() {
                                     contentAlignment = Alignment.BottomCenter
                                 ) {
                                     Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        horizontalAlignment = Alignment.Start,
                                         verticalArrangement = Arrangement.spacedBy(16.dp),
                                         modifier = Modifier
-                                            .padding(bottom = 96.dp) // Pushed above BottomBar + FAB
+                                            .padding(bottom = 80.dp) // Pushed closer down
                                             .wrapContentSize()
                                     ) {
                                         SpeedDialItem(
@@ -331,12 +331,23 @@ fun SpeedDialItem(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier
-            .padding(end = 4.dp)
+            .padding(start = 16.dp)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
             ) { onClick() }
     ) {
+        FloatingActionButton(
+            onClick = onClick,
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            shape = CircleShape,
+            modifier = Modifier.size(44.dp),
+            elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
+        ) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(24.dp))
+        }
+
         Surface(
             shape = RoundedCornerShape(12.dp),
             color = MaterialTheme.colorScheme.surface,
@@ -350,17 +361,6 @@ fun SpeedDialItem(
                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onSurface
             )
-        }
-        
-        FloatingActionButton(
-            onClick = onClick,
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            shape = CircleShape,
-            modifier = Modifier.size(44.dp),
-            elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
-        ) {
-            Icon(icon, contentDescription = null, modifier = Modifier.size(24.dp))
         }
     }
 }

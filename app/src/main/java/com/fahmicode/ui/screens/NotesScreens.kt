@@ -109,7 +109,8 @@ fun NotesScreen(
                     },
                     colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                         containerColor = Color.Transparent
-                    )
+                    ),
+                    windowInsets = WindowInsets(0, 0, 0, 0)
                 )
                 
                 // Search Row
@@ -120,28 +121,27 @@ fun NotesScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    TextField(
+                    OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
-                        placeholder = { Text("Search Notes", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp)
-                            .clip(RoundedCornerShape(8.dp)),
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                            unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                            cursorColor = AccentColor
-                        ),
+                        placeholder = { Text("Search notes...", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(Icons.Default.Clear, contentDescription = "Clear")
+                                }
+                            }
+                        },
+                        modifier = Modifier.weight(1f).height(56.dp),
+                        shape = RoundedCornerShape(12.dp),
                         singleLine = true,
-                        textStyle = TextStyle(fontSize = 14.sp),
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) }
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                            focusedContainerColor = MaterialTheme.colorScheme.surface,
+                            focusedBorderColor = AccentColor,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                        )
                     )
                     
                     IconButton(onClick = { isGridView = !isGridView }, modifier = Modifier.size(40.dp)) {
@@ -178,13 +178,15 @@ fun NotesScreen(
                     }
                 }
             } else {
-                // Pinned section placeholder
-                Text(
-                    "Pinned",
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onBackground
-                )
+                // Pinned section logic
+                if (filteredNotes.any { it.isPinned }) {
+                    Text(
+                        "Pinned",
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
 
                 if (isGridView) {
                     LazyVerticalStaggeredGrid(
@@ -194,14 +196,29 @@ fun NotesScreen(
                         verticalItemSpacing = 12.dp,
                         modifier = Modifier.weight(1f)
                     ) {
-                        items(filteredNotes, key = { it.id }) { note ->
+                        // Show Pinned first
+                        items(filteredNotes.filter { it.isPinned }, key = { "pinned_${it.id}" }) { note ->
                             NoteCard(
                                 note = note,
                                 onClick = {
                                     selectedNote = note
                                     showEditor = true
                                 },
-                                onDelete = { viewModel.deleteNote(note) }
+                                onDelete = { viewModel.deleteNote(note) },
+                                onTogglePin = { viewModel.addNote(note.copy(isPinned = !note.isPinned)) }
+                            )
+                        }
+                        
+                        // Others
+                        items(filteredNotes.filter { !it.isPinned }, key = { it.id }) { note ->
+                            NoteCard(
+                                note = note,
+                                onClick = {
+                                    selectedNote = note
+                                    showEditor = true
+                                },
+                                onDelete = { viewModel.deleteNote(note) },
+                                onTogglePin = { viewModel.addNote(note.copy(isPinned = !note.isPinned)) }
                             )
                         }
                     }
@@ -211,14 +228,29 @@ fun NotesScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                         modifier = Modifier.weight(1f)
                     ) {
-                        items(filteredNotes, key = { it.id }) { note ->
+                        // Pinned
+                        items(filteredNotes.filter { it.isPinned }, key = { "pinned_${it.id}" }) { note ->
                             NoteCard(
                                 note = note,
                                 onClick = {
                                     selectedNote = note
                                     showEditor = true
                                 },
-                                onDelete = { viewModel.deleteNote(note) }
+                                onDelete = { viewModel.deleteNote(note) },
+                                onTogglePin = { viewModel.addNote(note.copy(isPinned = !note.isPinned)) }
+                            )
+                        }
+                        
+                        // Others
+                        items(filteredNotes.filter { !it.isPinned }, key = { it.id }) { note ->
+                            NoteCard(
+                                note = note,
+                                onClick = {
+                                    selectedNote = note
+                                    showEditor = true
+                                },
+                                onDelete = { viewModel.deleteNote(note) },
+                                onTogglePin = { viewModel.addNote(note.copy(isPinned = !note.isPinned)) }
                             )
                         }
                     }
@@ -243,12 +275,15 @@ fun NotesScreen(
 fun NoteCard(
     note: Note,
     onClick: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onTogglePin: () -> Unit
 ) {
     val isDefaultColor = note.colorHex == 0xFF121212L
     val containerColor = if (isDefaultColor) MaterialTheme.colorScheme.surface else Color(note.colorHex)
     val isDark = if (isDefaultColor) isSystemInDarkTheme() else false 
     val contentColor = if (isDark) Color.White else Color.Black
+    
+    var showMenu by remember { mutableStateOf(false) }
 
     Card(
         modifier = Modifier
@@ -263,16 +298,56 @@ fun NoteCard(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(
-                    text = note.title.ifBlank { "Untitled" },
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                    color = contentColor
-                )
-                IconButton(onClick = onDelete, modifier = Modifier.size(24.dp)) {
-                    Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp), tint = contentColor.copy(alpha = 0.6f))
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                    if (note.isPinned) {
+                        Icon(
+                            Icons.Default.PushPin,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp).rotate(45f),
+                            tint = AccentColor
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                    }
+                    Text(
+                        text = note.title.ifBlank { "Untitled" },
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        color = contentColor
+                    )
+                }
+                
+                Box {
+                    IconButton(onClick = { showMenu = true }, modifier = Modifier.size(24.dp)) {
+                        Icon(
+                            Icons.Default.MoreVert,
+                            contentDescription = "Options",
+                            modifier = Modifier.size(18.dp),
+                            tint = contentColor.copy(alpha = 0.6f)
+                        )
+                    }
+                    
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(if (note.isPinned) "Unpin" else "Pin") },
+                            leadingIcon = { Icon(Icons.Default.PushPin, null, modifier = Modifier.size(18.dp)) },
+                            onClick = {
+                                onTogglePin()
+                                showMenu = false
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Delete", color = Color.Red) },
+                            leadingIcon = { Icon(Icons.Default.Delete, null, tint = Color.Red, modifier = Modifier.size(18.dp)) },
+                            onClick = {
+                                onDelete()
+                                showMenu = false
+                            }
+                        )
+                    }
                 }
             }
             
@@ -287,12 +362,13 @@ fun NoteCard(
             )
 
             if (note.containsTable) {
+                val sum = calculateTableSum(note.tableDataJson)
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.TableChart, contentDescription = null, modifier = Modifier.size(14.dp), tint = if (isDark) AccentColor else Color.DarkGray)
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        "Contains Table",
+                        "Calculation Table • Total: ৳$sum",
                         style = MaterialTheme.typography.labelSmall,
                         color = if (isDark) AccentColor else Color.DarkGray
                     )
@@ -306,6 +382,20 @@ fun NoteCard(
                 color = contentColor.copy(alpha = 0.4f)
             )
         }
+    }
+}
+
+fun calculateTableSum(json: String?): Double {
+    if (json.isNullOrEmpty()) return 0.0
+    return try {
+        val array = org.json.JSONArray(json)
+        var total = 0.0
+        for (i in 0 until array.length()) {
+            total += array.getJSONObject(i).optDouble("amount", 0.0)
+        }
+        total
+    } catch (e: Exception) {
+        0.0
     }
 }
 
@@ -324,8 +414,19 @@ fun NoteEditor(
     var selectedColor by remember { mutableStateOf(note.colorHex) }
     var containsTable by remember { mutableStateOf(note.containsTable) }
     
-    // In a real app, you'd parse JSON here. For this re-implementation, we'll focus on the UI structure.
-    var tableItems = remember { mutableStateListOf<CalculationItem>() }
+    val tableItems = remember { 
+        mutableStateListOf<CalculationItem>().apply {
+            if (!note.tableDataJson.isNullOrEmpty()) {
+                try {
+                    val array = org.json.JSONArray(note.tableDataJson)
+                    for (i in 0 until array.length()) {
+                        val obj = array.getJSONObject(i)
+                        add(CalculationItem(obj.getString("description"), obj.getDouble("amount")))
+                    }
+                } catch (_: Exception) {}
+            }
+        }
+    }
 
     val colors = listOf(
         0xFF121212, 0xFFF8D7DA, 0xFFD4EDDA, 0xFFD1ECF1,
@@ -355,11 +456,20 @@ fun NoteEditor(
                     },
                     actions = {
                         IconButton(onClick = {
+                            val jsonArray = org.json.JSONArray()
+                            tableItems.forEach { item ->
+                                jsonArray.put(org.json.JSONObject().apply {
+                                    put("description", item.description)
+                                    put("amount", item.amount)
+                                })
+                            }
+                            
                             onSave(note.copy(
                                 title = title,
                                 content = content,
                                 colorHex = selectedColor,
                                 containsTable = containsTable,
+                                tableDataJson = if (containsTable) jsonArray.toString() else null,
                                 updatedAt = System.currentTimeMillis()
                             ))
                         }) {

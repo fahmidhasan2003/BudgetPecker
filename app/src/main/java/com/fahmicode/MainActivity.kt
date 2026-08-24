@@ -34,7 +34,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.*
+import androidx.navigation.navArgument
 import com.fahmicode.ui.MainViewModel
 import com.fahmicode.ui.screens.*
 import com.fahmicode.ui.theme.BudgetPeckerTheme
@@ -64,15 +66,21 @@ class MainActivity : ComponentActivity() {
                 var showNoteSpeedDial by remember { mutableStateOf(false) }
 
                 Box(modifier = Modifier.fillMaxSize()) {
+                    val navBackStackEntry by navController.currentBackStackEntryAsState()
+                    val currentRoute = navBackStackEntry?.destination?.route
+                    val hideBottomBar = currentRoute?.startsWith("note_edit/") == true
+
                     Scaffold(
                         modifier = Modifier.fillMaxSize(),
                         bottomBar = {
-                            BottomNavigationBar(
-                                navController = navController,
-                                mainViewModel = mainViewModel,
-                                onShowMore = { showMoreMenu = !showMoreMenu },
-                                onNoteFabClick = { showNoteSpeedDial = !showNoteSpeedDial }
-                            )
+                            if (!hideBottomBar) {
+                                BottomNavigationBar(
+                                    navController = navController,
+                                    mainViewModel = mainViewModel,
+                                    onShowMore = { showMoreMenu = !showMoreMenu },
+                                    onNoteFabClick = { showNoteSpeedDial = !showNoteSpeedDial }
+                                )
+                            }
                         }
                     ) { innerPadding: PaddingValues ->
                         Box(modifier = Modifier.fillMaxSize()) {
@@ -401,6 +409,20 @@ fun NavigationHost(
         composable(BottomNavItem.Notes.route) {
             NotesScreen(
                 viewModel = viewModel,
+                onBack = { navController.popBackStack() },
+                onNavigateToEditor = { noteId ->
+                    navController.navigate("note_edit/$noteId")
+                }
+            )
+        }
+        composable(
+            route = "note_edit/{noteId}",
+            arguments = listOf(navArgument("noteId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val noteId = backStackEntry.arguments?.getLong("noteId") ?: -1L
+            NoteEditScreen(
+                noteId = noteId,
+                repository = viewModel.repository,
                 onBack = { navController.popBackStack() }
             )
         }

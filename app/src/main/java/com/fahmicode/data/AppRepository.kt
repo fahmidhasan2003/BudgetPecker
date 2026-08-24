@@ -40,8 +40,12 @@ class AppRepository(
         budgetDao.deleteBudget(budget)
     }
 
-    suspend fun insertNote(note: Note) {
-        noteDao.insertOrUpdateNote(note)
+    suspend fun insertNote(note: Note): Long {
+        return noteDao.insertOrUpdateNote(note)
+    }
+
+    suspend fun getNoteById(id: Long): Note? {
+        return noteDao.getNoteById(id)
     }
 
     suspend fun deleteNote(note: Note) {

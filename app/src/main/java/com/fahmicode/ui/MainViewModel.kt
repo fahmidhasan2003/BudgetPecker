@@ -34,7 +34,7 @@ import java.util.Calendar
 import androidx.core.content.edit
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
-    private val repository: AppRepository
+    val repository: AppRepository
     private val sharedPrefs: SharedPreferences = application.getSharedPreferences("budgetpecker_prefs", Context.MODE_PRIVATE)
 
     val transactions: StateFlow<List<Transaction>>
@@ -379,6 +379,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // Note Actions
+    suspend fun createDraftNote(action: FabAction): Long {
+        val newNote = when (action) {
+            FabAction.CalculationTable -> Note(title = "", content = "", containsTable = true)
+            else -> Note(title = "", content = "")
+        }
+        return repository.insertNote(newNote)
+    }
+
     fun addNote(note: Note) {
         viewModelScope.launch {
             repository.insertNote(note)

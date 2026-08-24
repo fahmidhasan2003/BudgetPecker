@@ -39,9 +39,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewModelScope
 import com.fahmicode.data.model.*
 import com.fahmicode.ui.MainViewModel
 import com.fahmicode.ui.theme.AccentColor
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -49,13 +51,13 @@ import java.util.*
 @Composable
 fun NotesScreen(
     viewModel: MainViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onNavigateToEditor: (Long) -> Unit
 ) {
     val notes by viewModel.notes.collectAsStateWithLifecycle()
     var searchQuery by remember { mutableStateOf("") }
-    var selectedNote by remember { mutableStateOf<Note?>(null) }
-    var showEditor by remember { mutableStateOf(false) }
     var isGridView by remember { mutableStateOf(true) }
+    val scope = rememberCoroutineScope()
 
     val filteredNotes = remember(notes, searchQuery) {
         if (searchQuery.isBlank()) notes else {
@@ -68,21 +70,9 @@ fun NotesScreen(
 
     LaunchedEffect(Unit) {
         viewModel.noteActionTrigger.collect { action ->
-            when (action) {
-                FabAction.TextNote -> {
-                    selectedNote = Note(title = "", content = "")
-                    showEditor = true
-                }
-                FabAction.CalculationTable -> {
-                    selectedNote = Note(title = "", content = "", containsTable = true)
-                    showEditor = true
-                }
-                FabAction.Image -> {
-                    // Image note logic
-                }
-                FabAction.Audio -> {
-                    // Audio note logic
-                }
+            scope.launch {
+                val draftId = viewModel.createDraftNote(action)
+                onNavigateToEditor(draftId)
             }
         }
     }
@@ -168,12 +158,12 @@ fun NotesScreen(
                             Icons.AutoMirrored.Filled.Notes,
                             contentDescription = null,
                             modifier = Modifier.size(80.dp),
-                            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f)
+                            tint = Color.White.copy(alpha = 0.1f)
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
                             "No notes yet.",
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                            color = Color.White.copy(alpha = 0.5f)
                         )
                     }
                 }
@@ -200,10 +190,7 @@ fun NotesScreen(
                         items(filteredNotes.filter { it.isPinned }, key = { "pinned_${it.id}" }) { note ->
                             NoteCard(
                                 note = note,
-                                onClick = {
-                                    selectedNote = note
-                                    showEditor = true
-                                },
+                                onClick = { onNavigateToEditor(note.id) },
                                 onDelete = { viewModel.deleteNote(note) },
                                 onTogglePin = { viewModel.addNote(note.copy(isPinned = !note.isPinned)) }
                             )
@@ -213,10 +200,7 @@ fun NotesScreen(
                         items(filteredNotes.filter { !it.isPinned }, key = { it.id }) { note ->
                             NoteCard(
                                 note = note,
-                                onClick = {
-                                    selectedNote = note
-                                    showEditor = true
-                                },
+                                onClick = { onNavigateToEditor(note.id) },
                                 onDelete = { viewModel.deleteNote(note) },
                                 onTogglePin = { viewModel.addNote(note.copy(isPinned = !note.isPinned)) }
                             )
@@ -232,10 +216,7 @@ fun NotesScreen(
                         items(filteredNotes.filter { it.isPinned }, key = { "pinned_${it.id}" }) { note ->
                             NoteCard(
                                 note = note,
-                                onClick = {
-                                    selectedNote = note
-                                    showEditor = true
-                                },
+                                onClick = { onNavigateToEditor(note.id) },
                                 onDelete = { viewModel.deleteNote(note) },
                                 onTogglePin = { viewModel.addNote(note.copy(isPinned = !note.isPinned)) }
                             )
@@ -245,10 +226,7 @@ fun NotesScreen(
                         items(filteredNotes.filter { !it.isPinned }, key = { it.id }) { note ->
                             NoteCard(
                                 note = note,
-                                onClick = {
-                                    selectedNote = note
-                                    showEditor = true
-                                },
+                                onClick = { onNavigateToEditor(note.id) },
                                 onDelete = { viewModel.deleteNote(note) },
                                 onTogglePin = { viewModel.addNote(note.copy(isPinned = !note.isPinned)) }
                             )
@@ -257,17 +235,6 @@ fun NotesScreen(
                 }
             }
         }
-    }
-
-    if (showEditor) {
-        NoteEditor(
-            note = selectedNote ?: Note(title = "", content = ""),
-            onDismiss = { showEditor = false },
-            onSave = { updatedNote ->
-                viewModel.addNote(updatedNote)
-                showEditor = false
-            }
-        )
     }
 }
 
@@ -280,13 +247,8 @@ fun NoteCard(
 ) {
     val isDefaultColor = note.colorHex == 0xFF121212L
     val containerColor = if (isDefaultColor) MaterialTheme.colorScheme.surface else Color(note.colorHex)
-    val contentColor = if (isDefaultColor) {
-        MaterialTheme.colorScheme.onSurface
-    } else {
-        // For custom colors, we assume they are light based on the provided palette
-        Color.Black
-    }
     val isDark = if (isDefaultColor) isSystemInDarkTheme() else false 
+    val contentColor = if (isDark) Color.White else Color.Black
     
     var showMenu by remember { mutableStateOf(false) }
 
@@ -401,270 +363,5 @@ fun calculateTableSum(json: String?): Double {
         total
     } catch (e: Exception) {
         0.0
-    }
-}
-
-
-
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun NoteEditor(
-    note: Note,
-    onDismiss: () -> Unit,
-    onSave: (Note) -> Unit
-) {
-    var title by remember { mutableStateOf(note.title) }
-    var content by remember { mutableStateOf(note.content) }
-    var selectedColor by remember { mutableStateOf(note.colorHex) }
-    var containsTable by remember { mutableStateOf(note.containsTable) }
-    
-    val tableItems = remember { 
-        mutableStateListOf<CalculationItem>().apply {
-            if (!note.tableDataJson.isNullOrEmpty()) {
-                try {
-                    val array = org.json.JSONArray(note.tableDataJson)
-                    for (i in 0 until array.length()) {
-                        val obj = array.getJSONObject(i)
-                        add(CalculationItem(obj.getString("description"), obj.getDouble("amount")))
-                    }
-                } catch (_: Exception) {}
-            }
-        }
-    }
-
-    val colors = listOf(
-        0xFF121212, 0xFFF8D7DA, 0xFFD4EDDA, 0xFFD1ECF1,
-        0xFFFFF3CD, 0xFFE1D5E7, 0xFFE2E3E5, 0xFFBEE5EB,
-        0xFFC3E6CB, 0xFFF5C6CB, 0xFFFFEBAA, 0xFFD6D8D9
-    )
-
-    val isDefaultColor = selectedColor == 0xFF121212L
-    val editorBackgroundColor = if (isDefaultColor) MaterialTheme.colorScheme.background else Color(selectedColor)
-    val contentColor = if (isDefaultColor) {
-        MaterialTheme.colorScheme.onBackground
-    } else {
-        Color.Black
-    }
-    val isDarkBackground = if (isDefaultColor) isSystemInDarkTheme() else false
-    val secondaryContentColor = contentColor.copy(alpha = 0.6f)
-
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = editorBackgroundColor
-    ) {
-        Scaffold(
-            containerColor = Color.Transparent,
-            topBar = {
-                TopAppBar(
-                    title = { Text(if (note.id == 0L) "New Note" else "Edit Note") },
-                    navigationIcon = {
-                        IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, contentDescription = "Close")
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = {
-                            val jsonArray = org.json.JSONArray()
-                            tableItems.forEach { item ->
-                                jsonArray.put(org.json.JSONObject().apply {
-                                    put("description", item.description)
-                                    put("amount", item.amount)
-                                })
-                            }
-                            
-                            onSave(note.copy(
-                                title = title,
-                                content = content,
-                                colorHex = selectedColor,
-                                containsTable = containsTable,
-                                tableDataJson = if (containsTable) jsonArray.toString() else null,
-                                updatedAt = System.currentTimeMillis()
-                            ))
-                        }) {
-                            Icon(Icons.Default.Check, contentDescription = "Save", tint = AccentColor)
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent
-                    )
-                )
-            }
-        ) { padding ->
-            Column(
-                modifier = Modifier
-                    .padding(padding)
-                    .fillMaxSize()
-                    .padding(16.dp)
-            ) {
-                BasicTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    textStyle = MaterialTheme.typography.headlineSmall.copy(
-                        color = contentColor,
-                        fontWeight = FontWeight.Bold
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                    cursorBrush = SolidColor(AccentColor),
-                    decorationBox = { innerTextField ->
-                        if (title.isEmpty()) Text("Title", style = MaterialTheme.typography.headlineSmall, color = contentColor.copy(alpha = 0.3f))
-                        innerTextField()
-                    }
-                )
-                
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    IconButton(onClick = { /* Toggle Bold */ }) { Icon(Icons.Default.FormatBold, null, tint = contentColor) }
-                    IconButton(onClick = { /* Toggle Italic */ }) { Icon(Icons.Default.FormatItalic, null, tint = contentColor) }
-                    IconButton(onClick = { containsTable = !containsTable }) { 
-                        Icon(Icons.Default.TableChart, null, tint = if (containsTable) AccentColor else contentColor)
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-                HorizontalDivider(color = contentColor.copy(alpha = 0.1f))
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Column(modifier = Modifier.weight(1f)) {
-                    BasicTextField(
-                        value = content,
-                        onValueChange = { content = it },
-                        textStyle = MaterialTheme.typography.bodyLarge.copy(color = contentColor),
-                        modifier = Modifier.fillMaxWidth().weight(1f),
-                        cursorBrush = SolidColor(AccentColor),
-                        decorationBox = { innerTextField ->
-                            if (content.isEmpty()) Text("Write something...", style = MaterialTheme.typography.bodyLarge, color = contentColor.copy(alpha = 0.3f))
-                            innerTextField()
-                        }
-                    )
-
-                    if (containsTable) {
-                        CalculationTableEditor(
-                            items = tableItems,
-                            onAddItem = { tableItems.add(CalculationItem("", 0.0)) },
-                            onRemoveItem = { tableItems.removeAt(it) },
-                            onUpdateItem = { index, item -> tableItems[index] = item },
-                            isDark = isDarkBackground
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                Text("Background Color", style = MaterialTheme.typography.labelLarge, color = contentColor)
-                Spacer(modifier = Modifier.height(8.dp))
-                LazyColumn(modifier = Modifier.height(50.dp)) {
-                    item {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            colors.forEach { color ->
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(CircleShape)
-                                        .background(Color(color))
-                                        .border(
-                                            width = if (selectedColor == color) 2.dp else 0.dp,
-                                            color = AccentColor,
-                                            shape = CircleShape
-                                        )
-                                        .clickable { selectedColor = color }
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun CalculationTableEditor(
-    items: List<CalculationItem>,
-    onAddItem: () -> Unit,
-    onRemoveItem: (Int) -> Unit,
-    onUpdateItem: (Int, CalculationItem) -> Unit,
-    isDark: Boolean = false
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-        color = if (isDark) Color.White.copy(alpha = 0.05f) else Color.Black.copy(alpha = 0.05f),
-        shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.1f))
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Calculation Table", fontWeight = FontWeight.Bold, color = AccentColor)
-                Text("Total: ৳${items.sumOf { it.amount }}", fontWeight = FontWeight.Bold, color = if (isDark) Color.White else Color.Black)
-            }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Table Header
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text("SL", modifier = Modifier.width(30.dp), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = if (isDark) Color.White else Color.Black)
-                Text("Description", modifier = Modifier.weight(2f), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = if (isDark) Color.White else Color.Black)
-                Text("Amount", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = if (isDark) Color.White else Color.Black)
-                Spacer(modifier = Modifier.size(24.dp))
-            }
-
-            items.forEachIndexed { index, item ->
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = "${index + 1}",
-                        modifier = Modifier.width(30.dp),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (isDark) Color.White else Color.Black
-                    )
-                    TextField(
-                        value = item.description,
-                        onValueChange = { onUpdateItem(index, item.copy(description = it)) },
-                        placeholder = { Text("Desc") },
-                        modifier = Modifier.weight(2f),
-                        colors = TextFieldDefaults.colors(
-                            unfocusedContainerColor = Color.Transparent,
-                            focusedContainerColor = Color.Transparent,
-                            focusedTextColor = if (isDark) Color.White else Color.Black,
-                            unfocusedTextColor = if (isDark) Color.White else Color.Black
-                        ),
-                        singleLine = true
-                    )
-                    TextField(
-                        value = if (item.amount == 0.0) "" else item.amount.toString(),
-                        onValueChange = { onUpdateItem(index, item.copy(amount = it.toDoubleOrNull() ?: 0.0)) },
-                        placeholder = { Text("0.0") },
-                        modifier = Modifier.weight(1f),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        colors = TextFieldDefaults.colors(
-                            unfocusedContainerColor = Color.Transparent,
-                            focusedContainerColor = Color.Transparent,
-                            focusedTextColor = if (isDark) Color.White else Color.Black,
-                            unfocusedTextColor = if (isDark) Color.White else Color.Black
-                        ),
-                        singleLine = true
-                    )
-                    IconButton(onClick = { onRemoveItem(index) }, modifier = Modifier.size(24.dp)) {
-                        Icon(Icons.Default.RemoveCircleOutline, null, tint = Color.Red.copy(alpha = 0.7f))
-                    }
-                }
-            }
-
-            TextButton(
-                onClick = onAddItem,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            ) {
-                Icon(Icons.Default.Add, null, tint = AccentColor)
-                Text("Add Row", color = AccentColor)
-            }
-        }
     }
 }

@@ -168,12 +168,12 @@ fun NotesScreen(
                             Icons.AutoMirrored.Filled.Notes,
                             contentDescription = null,
                             modifier = Modifier.size(80.dp),
-                            tint = Color.White.copy(alpha = 0.1f)
+                            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f)
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
                             "No notes yet.",
-                            color = Color.White.copy(alpha = 0.5f)
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                         )
                     }
                 }
@@ -280,8 +280,13 @@ fun NoteCard(
 ) {
     val isDefaultColor = note.colorHex == 0xFF121212L
     val containerColor = if (isDefaultColor) MaterialTheme.colorScheme.surface else Color(note.colorHex)
+    val contentColor = if (isDefaultColor) {
+        MaterialTheme.colorScheme.onSurface
+    } else {
+        // For custom colors, we assume they are light based on the provided palette
+        Color.Black
+    }
     val isDark = if (isDefaultColor) isSystemInDarkTheme() else false 
-    val contentColor = if (isDark) Color.White else Color.Black
     
     var showMenu by remember { mutableStateOf(false) }
 
@@ -436,9 +441,13 @@ fun NoteEditor(
 
     val isDefaultColor = selectedColor == 0xFF121212L
     val editorBackgroundColor = if (isDefaultColor) MaterialTheme.colorScheme.background else Color(selectedColor)
+    val contentColor = if (isDefaultColor) {
+        MaterialTheme.colorScheme.onBackground
+    } else {
+        Color.Black
+    }
     val isDarkBackground = if (isDefaultColor) isSystemInDarkTheme() else false
-    val contentColor = if (isDarkBackground) Color.White else Color.Black
-    val secondaryContentColor = if (isDarkBackground) Color.White.copy(alpha = 0.6f) else Color.Black.copy(alpha = 0.6f)
+    val secondaryContentColor = contentColor.copy(alpha = 0.6f)
 
     Surface(
         modifier = Modifier.fillMaxSize(),

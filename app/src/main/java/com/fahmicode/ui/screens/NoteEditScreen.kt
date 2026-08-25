@@ -118,46 +118,39 @@ fun NoteEditScreen(
         },
         containerColor = backgroundColor,
         bottomBar = {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .imePadding(),
-                color = backgroundColor,
-                tonalElevation = 2.dp
-            ) {
-                Column {
-                    HorizontalDivider(color = contentColor.copy(alpha = 0.1f))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        IconButton(onClick = { /* Formatting */ }) { Icon(Icons.Default.FormatSize, null, tint = contentColor) }
-                        IconButton(onClick = { /* Bold */ }) { Icon(Icons.Default.FormatBold, null, tint = contentColor) }
-                        IconButton(onClick = { /* List */ }) { Icon(Icons.Default.FormatListBulleted, null, tint = contentColor) }
-                        IconButton(onClick = {
-                             val updatedNote = currentNote.copy(containsTable = !currentNote.containsTable)
-                             editViewModel.updateNote(updatedNote)
-                        }) { 
-                            Icon(Icons.Default.TableChart, null, tint = if (currentNote.containsTable) AccentColor else contentColor) 
-                        }
-                        
-                        Spacer(modifier = Modifier.weight(1f))
-                        
-                        // Color Picker
-                        Box(modifier = Modifier.height(40.dp).width(120.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                // Simplified color picker in bottom bar or use a dialog
-                            }
-                        }
+            Column(modifier = Modifier.background(backgroundColor)) {
+                HorizontalDivider(color = contentColor.copy(alpha = 0.1f))
+                
+                // Background Color Picker moved here
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("BG:", style = MaterialTheme.typography.labelMedium, color = contentColor.copy(alpha = 0.6f))
+                    colors.forEach { color ->
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(CircleShape)
+                                .background(Color(color))
+                                .border(
+                                    width = if (currentNote.colorHex == color) 2.dp else 0.5.dp,
+                                    color = if (currentNote.colorHex == color) AccentColor else contentColor.copy(alpha = 0.2f),
+                                    shape = CircleShape
+                                )
+                                .clickable { editViewModel.updateColor(color) }
+                        )
                     }
                 }
+
+                SingleLineFormattingToolbar(
+                    backgroundColor = Color.Transparent,
+                    contentColor = contentColor
+                )
             }
         }
     ) { padding ->
@@ -205,26 +198,6 @@ fun NoteEditScreen(
                 )
             }
             
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            Text("Background", style = MaterialTheme.typography.labelLarge, color = contentColor)
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                colors.forEach { color ->
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .background(Color(color))
-                            .border(
-                                width = if (currentNote.colorHex == color) 2.dp else 0.dp,
-                                color = AccentColor,
-                                shape = CircleShape
-                            )
-                            .clickable { editViewModel.updateColor(color) }
-                    )
-                }
-            }
             Spacer(modifier = Modifier.height(32.dp))
         }
     }

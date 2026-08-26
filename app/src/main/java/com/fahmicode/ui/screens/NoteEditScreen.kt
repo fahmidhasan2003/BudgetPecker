@@ -119,40 +119,10 @@ fun NoteEditScreen(
         },
         containerColor = backgroundColor,
         bottomBar = {
-            Column(modifier = Modifier.background(backgroundColor)) {
-                HorizontalDivider(color = contentColor.copy(alpha = 0.1f))
-                
-                // Background Color Picker moved here
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("BG:", style = MaterialTheme.typography.labelMedium, color = contentColor.copy(alpha = 0.6f))
-                    colors.forEach { color ->
-                        Box(
-                            modifier = Modifier
-                                .size(28.dp)
-                                .clip(CircleShape)
-                                .background(Color(color))
-                                .border(
-                                    width = if (currentNote.colorHex == color) 2.dp else 0.5.dp,
-                                    color = if (currentNote.colorHex == color) AccentColor else contentColor.copy(alpha = 0.2f),
-                                    shape = CircleShape
-                                )
-                                .clickable { editViewModel.updateColor(color) }
-                        )
-                    }
-                }
-
-                SingleLineFormattingToolbar(
-                    backgroundColor = Color.Transparent,
-                    contentColor = contentColor
-                )
-            }
+            SingleLineFormattingToolbar(
+                backgroundColor = backgroundColor,
+                contentColor = contentColor
+            )
         }
     ) { padding ->
         Column(

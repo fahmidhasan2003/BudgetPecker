@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -64,8 +65,11 @@ fun NoteEditScreen(
     val currentNote = note!!
     val isDefaultColor = currentNote.colorHex == 0xFF121212L
     val backgroundColor = if (isDefaultColor) MaterialTheme.colorScheme.background else Color(currentNote.colorHex)
-    val contentColor = if (isDefaultColor) MaterialTheme.colorScheme.onBackground else Color.Black
-    val isDark = if (isDefaultColor) isSystemInDarkTheme() else false
+    val contentColor = if (isDefaultColor) {
+        MaterialTheme.colorScheme.onBackground
+    } else {
+        if (backgroundColor.luminance() < 0.5f) Color.White else Color(0xFF1C1B1F)
+    }
 
     val colors = listOf(
         0xFF121212, 0xFFF8D7DA, 0xFFD4EDDA, 0xFFD1ECF1,

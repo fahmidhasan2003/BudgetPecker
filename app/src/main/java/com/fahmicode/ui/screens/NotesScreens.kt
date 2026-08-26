@@ -29,6 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
@@ -114,8 +115,8 @@ fun NotesScreen(
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
-                        placeholder = { Text("Search notes...", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) },
+                        placeholder = { Text("Search notes...", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                         trailingIcon = {
                             if (searchQuery.isNotEmpty()) {
                                 IconButton(onClick = { searchQuery = "" }) {
@@ -127,10 +128,10 @@ fun NotesScreen(
                         shape = RoundedCornerShape(12.dp),
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                            focusedContainerColor = MaterialTheme.colorScheme.surface,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                             focusedBorderColor = AccentColor,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                            unfocusedBorderColor = Color.Transparent
                         )
                     )
                     
@@ -158,12 +159,12 @@ fun NotesScreen(
                             Icons.AutoMirrored.Filled.Notes,
                             contentDescription = null,
                             modifier = Modifier.size(80.dp),
-                            tint = Color.White.copy(alpha = 0.1f)
+                            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f)
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
                             "No notes yet.",
-                            color = Color.White.copy(alpha = 0.5f)
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                         )
                     }
                 }
@@ -246,9 +247,12 @@ fun NoteCard(
     onTogglePin: () -> Unit
 ) {
     val isDefaultColor = note.colorHex == 0xFF121212L
-    val containerColor = if (isDefaultColor) MaterialTheme.colorScheme.surface else Color(note.colorHex)
-    val isDark = if (isDefaultColor) isSystemInDarkTheme() else false 
-    val contentColor = if (isDark) Color.White else Color.Black
+    val containerColor = if (isDefaultColor) MaterialTheme.colorScheme.surfaceVariant else Color(note.colorHex)
+    val contentColor = if (isDefaultColor) {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    } else {
+        if (containerColor.luminance() < 0.5f) Color.White else Color(0xFF1C1B1F)
+    }
     
     var showMenu by remember { mutableStateOf(false) }
 
@@ -261,7 +265,11 @@ fun NoteCard(
         colors = CardDefaults.cardColors(
             containerColor = containerColor
         ),
-        border = BorderStroke(1.dp, if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.1f))
+        border = if (isDefaultColor) {
+            BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+        } else {
+            BorderStroke(1.dp, contentColor.copy(alpha = 0.1f))
+        }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -325,19 +333,24 @@ fun NoteCard(
                 style = MaterialTheme.typography.bodySmall,
                 maxLines = 6,
                 overflow = TextOverflow.Ellipsis,
-                color = contentColor.copy(alpha = 0.7f)
+                color = contentColor.copy(alpha = 0.8f)
             )
 
             if (note.containsTable) {
                 val sum = calculateTableSum(note.tableDataJson)
+                val tableMetaColor = if (isDefaultColor) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    if (containerColor.luminance() < 0.5f) AccentColor else Color.DarkGray
+                }
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.TableChart, contentDescription = null, modifier = Modifier.size(14.dp), tint = if (isDark) AccentColor else Color.DarkGray)
+                    Icon(Icons.Default.TableChart, contentDescription = null, modifier = Modifier.size(14.dp), tint = tableMetaColor)
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         "Calculation Table • Total: ৳$sum",
                         style = MaterialTheme.typography.labelSmall,
-                        color = if (isDark) AccentColor else Color.DarkGray
+                        color = tableMetaColor
                     )
                 }
             }
@@ -346,7 +359,7 @@ fun NoteCard(
             Text(
                 text = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(Date(note.updatedAt)),
                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                color = contentColor.copy(alpha = 0.4f)
+                color = contentColor.copy(alpha = 0.7f)
             )
         }
     }

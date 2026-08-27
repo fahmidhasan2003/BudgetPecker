@@ -109,7 +109,7 @@ fun AaTool(contentColor: Color) {
                 BottomSheetItem(Icons.Default.FormatItalic, "Italic")
                 BottomSheetItem(Icons.Default.FormatUnderlined, "Underline")
                 BottomSheetItem(Icons.Default.FormatStrikethrough, "Strikethrough")
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = Color.White.copy(alpha = 0.1f))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
                 BottomSheetItem(Icons.Default.FontDownload, "Font")
                 BottomSheetItem(Icons.Default.FormatSize, "Font Size")
                 BottomSheetItem(Icons.Default.FormatColorText, "Font Color")
@@ -199,7 +199,7 @@ fun NoteColorTool(contentColor: Color) {
                             .size(40.dp)
                             .clip(CircleShape)
                             .background(Color(color))
-                            .border(1.dp, Color.White.copy(alpha = 0.2f), CircleShape)
+                            .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f), CircleShape)
                             .clickable { showSheet = false }
                     )
                 }
@@ -214,7 +214,7 @@ fun NoteColorTool(contentColor: Color) {
                             .size(40.dp)
                             .clip(CircleShape)
                             .background(Color(color))
-                            .border(1.dp, Color.White.copy(alpha = 0.2f), CircleShape)
+                            .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f), CircleShape)
                             .clickable { showSheet = false }
                     )
                 }
@@ -355,7 +355,7 @@ fun Section(title: String, content: @Composable () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(title, style = MaterialTheme.typography.labelSmall, color = AccentColor, fontWeight = FontWeight.Bold)
         content()
-        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = Color.White.copy(alpha = 0.05f))
+        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
     }
 }
 
@@ -374,11 +374,11 @@ fun BottomSheetItem(
             .padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White.copy(alpha = 0.7f))
+        Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
         Spacer(modifier = Modifier.width(16.dp))
-        Text(title, style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.9f))
+        Text(title, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f))
         Spacer(modifier = Modifier.weight(1f))
-        Icon(Icons.Default.ChevronRight, null, modifier = Modifier.size(16.dp), tint = Color.White.copy(alpha = 0.3f))
+        Icon(Icons.Default.ChevronRight, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
     }
 }
 
@@ -390,8 +390,8 @@ fun EditorBottomSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        dragHandle = { BottomSheetDefaults.DragHandle(color = Color.White.copy(alpha = 0.2f)) },
-        containerColor = Color(0xFF1E1E1E), // Existing Dark Theme Background
+        dragHandle = { BottomSheetDefaults.DragHandle(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)) },
+        containerColor = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     ) {
         Column(

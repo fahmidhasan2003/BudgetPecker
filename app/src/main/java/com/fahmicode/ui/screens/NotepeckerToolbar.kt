@@ -93,29 +93,188 @@ fun FormattingToolButton(
 @Composable
 fun AaTool(contentColor: Color) {
     var showSheet by remember { mutableStateOf(false) }
-    FormattingToolButton(text = "Aa", contentColor = contentColor) { showSheet = true }
+    var currentSheet by remember { mutableStateOf("Main") }
+
+    FormattingToolButton(text = "Aa", contentColor = contentColor) {
+        currentSheet = "Main"
+        showSheet = true
+    }
 
     if (showSheet) {
         EditorBottomSheet(onDismiss = { showSheet = false }) {
-            Text(
-                "Text Style",
-                modifier = Modifier.padding(bottom = 16.dp),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                BottomSheetItem(Icons.Default.FormatBold, "Bold")
-                BottomSheetItem(Icons.Default.FormatItalic, "Italic")
-                BottomSheetItem(Icons.Default.FormatUnderlined, "Underline")
-                BottomSheetItem(Icons.Default.FormatStrikethrough, "Strikethrough")
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
-                BottomSheetItem(Icons.Default.FontDownload, "Font")
-                BottomSheetItem(Icons.Default.FormatSize, "Font Size")
-                BottomSheetItem(Icons.Default.FormatColorText, "Font Color")
-                BottomSheetItem(Icons.Default.BorderColor, "Highlight")
+            when (currentSheet) {
+                "Main" -> TextStyleMainSheet(
+                    onClose = { showSheet = false },
+                    onNavigateTo = { currentSheet = it }
+                )
+                "Font" -> TextStyleSubSheet("Font", onBack = { currentSheet = "Main" })
+                "FontSize" -> TextStyleSubSheet("Font Size", onBack = { currentSheet = "Main" })
+                "FontColor" -> TextStyleSubSheet("Font Color", onBack = { currentSheet = "Main" })
+                "Highlight" -> TextStyleSubSheet("Highlight", onBack = { currentSheet = "Main" })
+                "Outline" -> TextStyleSubSheet("Outline", onBack = { currentSheet = "Main" })
             }
         }
+    }
+}
+
+@Composable
+fun TextStyleMainSheet(
+    onClose: () -> Unit,
+    onNavigateTo: (String) -> Unit
+) {
+    Column {
+        TextStyleHeader(title = "Text Style", onAction = onClose, actionIcon = Icons.Default.Close)
+
+        QuickFormatRow()
+
+        HorizontalDivider(
+            modifier = Modifier.padding(vertical = 8.dp),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+        )
+
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            SettingsListItem(Icons.Default.FontDownload, "Font") { onNavigateTo("Font") }
+            SettingsListItem(Icons.Default.FormatSize, "Font Size") { onNavigateTo("FontSize") }
+            SettingsListItem(Icons.Default.FormatColorText, "Font Color") { onNavigateTo("FontColor") }
+            SettingsListItem(Icons.Default.BorderColor, "Highlight") { onNavigateTo("Highlight") }
+            SettingsListItem(Icons.Default.SettingsInputComponent, "Outline") { onNavigateTo("Outline") }
+        }
+    }
+}
+
+@Composable
+fun TextStyleSubSheet(
+    title: String,
+    onBack: () -> Unit
+) {
+    Column {
+        TextStyleHeader(title = title, onAction = onBack, actionIcon = Icons.AutoMirrored.Filled.ArrowBack)
+        
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                "Select $title (UI Placeholder)",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+            )
+        }
+    }
+}
+
+@Composable
+fun TextStyleHeader(
+    title: String,
+    onAction: () -> Unit,
+    actionIcon: ImageVector
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
+        )
+        IconButton(onClick = onAction, modifier = Modifier.size(24.dp)) {
+            Icon(
+                imageVector = actionIcon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun QuickFormatRow() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        var bold by remember { mutableStateOf(false) }
+        var italic by remember { mutableStateOf(false) }
+        var underline by remember { mutableStateOf(false) }
+        var strike by remember { mutableStateOf(false) }
+        var superScript by remember { mutableStateOf(false) }
+        var subScript by remember { mutableStateOf(false) }
+
+        QuickFormatButton(text = "B", isSelected = bold) { bold = !bold }
+        QuickFormatButton(text = "I", isSelected = italic) { italic = !italic }
+        QuickFormatButton(text = "U", isSelected = underline) { underline = !underline }
+        QuickFormatButton(text = "S", isSelected = strike) { strike = !strike }
+        QuickFormatButton(text = "X²", isSelected = superScript) { superScript = !superScript }
+        QuickFormatButton(text = "X₂", isSelected = subScript) { subScript = !subScript }
+    }
+}
+
+@Composable
+fun QuickFormatButton(
+    text: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .size(40.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (isSelected) AccentColor.copy(alpha = 0.2f) else Color.Transparent)
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            color = if (isSelected) AccentColor else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+            fontWeight = FontWeight.Bold,
+            fontSize = 16.sp
+        )
+    }
+}
+
+@Composable
+fun SettingsListItem(
+    icon: ImageVector,
+    title: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(48.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .clickable { onClick() }
+            .padding(horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
+        )
+        Spacer(modifier = Modifier.weight(1f))
+        Icon(
+            imageVector = Icons.Default.ChevronRight,
+            contentDescription = null,
+            modifier = Modifier.size(16.dp),
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+        )
     }
 }
 
@@ -397,7 +556,7 @@ fun EditorBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 24.dp, end = 24.dp, bottom = 48.dp)
+                .padding(start = 20.dp, end = 20.dp, bottom = 32.dp)
         ) {
             content()
         }

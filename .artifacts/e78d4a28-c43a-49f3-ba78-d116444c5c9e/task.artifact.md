@@ -1,5 +1,0 @@
-- `[x]` Create `CurrencyConverterScreen.kt` and move logic from `Screens.kt`
-- `[x]` Remove Currency Converter code from `Screens.kt` and update `SettingsScreen`
-- `[x]` Remove `showConverter` state from `MainViewModel.kt`
-- `[x]` Update `MainActivity.kt` with new navigation route and cleanup overlay UI
-- `[x]` Verify build with `./gradlew :app:assembleDebug`

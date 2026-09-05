@@ -1,5 +1,0 @@
-- [x] Add `isEvaluated` state to `CalculatorScreen` in `CalculatorScreen.kt`
-- [x] Refactor `onAction` logic to handle evaluated state and result promotion
-- [x] Update Display Card UI with dynamic styling for expression and result
-- [x] Verify build and interactive logic
-- [x] Update animation duration to 400ms in `CalculatorScreen.kt`

@@ -1,5 +1,0 @@
-- [x] Update `Models.kt` (Note entity and FabAction enum)
-- [x] Update `MainActivity.kt` (Dynamic Center FAB logic)
-- [x] Update `NotesScreens.kt` (TopBar, Search, Backgrounds, SL column)
-- [x] Update `MainViewModel.kt` (Note creation triggers)
-- [x] Verify build with `./gradlew :app:assembleDebug`

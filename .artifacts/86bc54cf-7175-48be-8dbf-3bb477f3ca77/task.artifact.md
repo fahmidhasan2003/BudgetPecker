@@ -1,7 +1,0 @@
-- `[x]` Data Layer: Update `Models.kt` with new `Note` entity and supporting classes
-- `[x]` Data Layer: Update `NoteTypeConverter.kt` for JSON serialization
-- `[x]` Data Layer: Update `AppDatabase.kt` (Version 3 + Destructive Migration)
-- `[x]` UI Theme: Update `Color.kt` and `Theme.kt` for Dark Mode alignment
-- `[/]` UI Layer: Rewrite `NotesScreens.kt` (Staggered Grid, Speed Dial FAB, Editor)
-- `[ ]` ViewModel: Update `MainViewModel.kt` note actions
-- `[ ]` Build & Verification: Execute `./gradlew :app:assembleDebug`

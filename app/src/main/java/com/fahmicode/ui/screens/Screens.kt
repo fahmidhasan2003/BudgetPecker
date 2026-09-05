@@ -204,6 +204,16 @@ fun isSameMonth(millis: Long, cal: Calendar): Boolean {
             tCal.get(Calendar.YEAR) == cal.get(Calendar.YEAR)
 }
 
+fun isBeforeOrSameMonth(millis: Long, cal: Calendar): Boolean {
+    val tCal = Calendar.getInstance().apply { timeInMillis = millis }
+    val txYear = tCal.get(Calendar.YEAR)
+    val txMonth = tCal.get(Calendar.MONTH)
+    val selYear = cal.get(Calendar.YEAR)
+    val selMonth = cal.get(Calendar.MONTH)
+
+    return (txYear < selYear) || (txYear == selYear && txMonth <= selMonth)
+}
+
 @Composable
 fun MonthNavigator(
     selectedDate: Calendar,
@@ -278,7 +288,10 @@ fun DashboardScreen(
         transactions.filter { !it.isIncome && isSameMonth(it.dateMillis, selectedDate) }
             .sumOf { it.amount }
     }
-    val balance = remember(totalIncome, totalExpense) { totalIncome - totalExpense }
+    val balance = remember(transactions, selectedDate) {
+        transactions.filter { isBeforeOrSameMonth(it.dateMillis, selectedDate) }
+            .sumOf { if (it.isIncome) it.amount else -it.amount }
+    }
 
     // Dialog State
     var transactionToDelete by remember { mutableStateOf<Transaction?>(null) }

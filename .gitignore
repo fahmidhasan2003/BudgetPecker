@@ -13,3 +13,8 @@ captures/
 debug.keystore
 .artifacts/
 *.apk
+
+# Signing keys
+*.jks
+*.keystore
+budgetpecker-key

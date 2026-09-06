@@ -12,8 +12,8 @@ android {
 
   signingConfigs {
     create("release") {
-      val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
-      storeFile = file("H:\\FAHMID\\budgetpecker\\budgetpecker-key")
+      val keystorePath = System.getenv("KEYSTORE_PATH")
+      storeFile = if (!keystorePath.isNullOrBlank()) file(keystorePath) else file("KEYSTORE_PATH_NOT_SET")
       storePassword = System.getenv("STORE_PASSWORD")
       keyAlias = "upload"
       keyPassword = System.getenv("KEY_PASSWORD")
@@ -30,11 +30,10 @@ android {
     applicationId = "com.fahmicode.budgetpecker"
     minSdk = 24
     targetSdk = 35
-    versionCode = 3
-    versionName = "2.0.1-Beta"
+    versionCode = 4
+    versionName = "3.0.1-Beta"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-    signingConfig = signingConfigs.getByName("release")
   }
   packaging {
     resources {

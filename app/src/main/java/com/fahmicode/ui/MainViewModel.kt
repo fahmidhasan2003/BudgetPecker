@@ -20,7 +20,9 @@ import com.fahmicode.ui.screens.CategoryPreset
 import com.fahmicode.ui.screens.CustomExpenseCategoryPresets
 import com.fahmicode.ui.screens.CustomIncomeCategoryPresets
 import com.fahmicode.ui.screens.ExpenseCategoryPresets
+import com.fahmicode.ui.screens.ExpenseCategoryPresetsAll
 import com.fahmicode.ui.screens.IncomeCategoryPresets
+import com.fahmicode.ui.screens.IncomeCategoryPresetsAll
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -199,6 +201,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val removedIncome = CustomIncomeCategoryPresets.removeAll { it.name.equals(name, ignoreCase = true) }
         if (removedExpense || removedIncome) {
             saveCustomCategories()
+            viewModelScope.launch {
+                repository.deleteBudgetsForCategory(name)
+            }
             return true
         }
         return false
@@ -408,6 +413,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // Import / Export backup (using Android standard org.json)
     fun exportBackupToJson(): String {
         val root = JSONObject()
+        
+        // 1. Transactions
         val txArray = JSONArray()
         transactions.value.forEach { tx ->
             val obj = JSONObject().apply {
@@ -421,19 +428,26 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
             txArray.put(obj)
         }
+        root.put("transactions", txArray)
         
+        // 2. Budgets
         val bgArray = JSONArray()
         budgets.value.forEach { bg ->
             val obj = JSONObject().apply {
                 put("id", bg.id)
                 put("category", bg.category)
                 put("amountLimit", bg.amountLimit)
+                put("month", bg.month)
+                put("year", bg.year)
             }
             bgArray.put(obj)
         }
-
-        root.put("transactions", txArray)
         root.put("budgets", bgArray)
+
+        // 3. Custom Categories
+        val customCatsJson = sharedPrefs.getString("custom_categories_json", "[]")
+        root.put("custom_categories", JSONArray(customCatsJson))
+
         return root.toString(2)
     }
 
@@ -442,13 +456,37 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val root = JSONObject(jsonString)
             val txArray = root.optJSONArray("transactions")
             val bgArray = root.optJSONArray("budgets")
+            val customCatsArray = root.optJSONArray("custom_categories")
 
             viewModelScope.launch {
+                // 1. Restore Custom Categories first to ensure they exist for budgets/transactions
+                if (customCatsArray != null) {
+                    for (i in 0 until customCatsArray.length()) {
+                        val obj = customCatsArray.getJSONObject(i)
+                        val name = obj.getString("name")
+                        val emoji = obj.optString("emoji", "📁")
+                        val colorValue = obj.optLong("colorValue", 0L)
+                        val isIncome = obj.optBoolean("isIncome", false)
+                        
+                        // Add only if not already exists (case-insensitive)
+                        val exists = if (isIncome) {
+                            IncomeCategoryPresetsAll.any { it.name.equals(name, ignoreCase = true) }
+                        } else {
+                            ExpenseCategoryPresetsAll.any { it.name.equals(name, ignoreCase = true) }
+                        }
+                        
+                        if (!exists) {
+                            addCustomCategory(name, emoji, colorValue, isIncome)
+                        }
+                    }
+                }
+
+                // 2. Transactions
                 if (txArray != null) {
                     for (i in 0 until txArray.length()) {
                         val obj = txArray.getJSONObject(i)
                         val tx = Transaction(
-                            id = obj.optInt("id", 0),
+                            id = 0, // Auto-generate new IDs to avoid conflicts with existing local data
                             amount = obj.getDouble("amount"),
                             title = obj.getString("title"),
                             note = obj.optString("note", ""),
@@ -456,19 +494,40 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                             isIncome = obj.getBoolean("isIncome"),
                             dateMillis = obj.getLong("dateMillis")
                         )
-                        repository.insertTransaction(tx)
+                        // Simple duplicate protection for transactions based on content
+                        val isDuplicate = transactions.value.any {
+                            it.amount == tx.amount && 
+                            it.title == tx.title && 
+                            it.dateMillis == tx.dateMillis && 
+                            it.category == tx.category
+                        }
+                        if (!isDuplicate) {
+                            repository.insertTransaction(tx)
+                        }
                     }
                 }
 
+                // 3. Budgets
                 if (bgArray != null) {
                     for (i in 0 until bgArray.length()) {
                         val obj = bgArray.getJSONObject(i)
-                        val bg = Budget(
-                            id = obj.optInt("id", 0),
-                            category = obj.getString("category"),
-                            amountLimit = obj.getDouble("amountLimit")
-                        )
-                        repository.insertBudget(bg)
+                        val category = obj.getString("category")
+                        val amountLimit = obj.getDouble("amountLimit")
+                        val month = obj.optInt("month", -1)
+                        val year = obj.optInt("year", -1)
+
+                        // Avoid duplicates
+                        val existing = repository.getBudgetByCategoryAndMonth(category, month, year)
+                        if (existing == null) {
+                            val bg = Budget(
+                                id = 0, // Auto-generate
+                                category = category,
+                                amountLimit = amountLimit,
+                                month = month,
+                                year = year
+                            )
+                            repository.insertBudget(bg)
+                        }
                     }
                 }
             }

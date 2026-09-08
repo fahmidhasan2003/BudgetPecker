@@ -37,4 +37,10 @@ interface BudgetDao {
 
     @Query("DELETE FROM budgets")
     suspend fun clearAllBudgets()
+
+    @Query("DELETE FROM budgets WHERE LOWER(category) = LOWER(:category)")
+    suspend fun deleteBudgetsForCategory(category: String)
+
+    @Query("SELECT * FROM budgets WHERE LOWER(category) = LOWER(:category) AND month = :month AND year = :year LIMIT 1")
+    suspend fun getBudgetByCategoryAndMonth(category: String, month: Int, year: Int): Budget?
 }

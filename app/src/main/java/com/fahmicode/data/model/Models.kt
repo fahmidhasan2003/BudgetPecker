@@ -18,7 +18,9 @@ data class Transaction(
 data class Budget(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val category: String,
-    val amountLimit: Double
+    val amountLimit: Double,
+    val month: Int = -1,
+    val year: Int = -1
 )
 
 data class ChecklistItem(

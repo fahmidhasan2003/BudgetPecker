@@ -56,4 +56,12 @@ class AppRepository(
         transactionDao.clearAllTransactions()
         budgetDao.clearAllBudgets()
     }
+
+    suspend fun deleteBudgetsForCategory(category: String) {
+        budgetDao.deleteBudgetsForCategory(category)
+    }
+
+    suspend fun getBudgetByCategoryAndMonth(category: String, month: Int, year: Int): Budget? {
+        return budgetDao.getBudgetByCategoryAndMonth(category, month, year)
+    }
 }

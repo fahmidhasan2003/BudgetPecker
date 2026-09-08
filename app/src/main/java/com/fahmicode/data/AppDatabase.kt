@@ -14,7 +14,7 @@ import com.fahmicode.data.model.Transaction
 import com.fahmicode.data.model.Budget
 import com.fahmicode.data.model.Note
 
-@Database(entities = [Transaction::class, Budget::class, Note::class], version = 3, exportSchema = false)
+@Database(entities = [Transaction::class, Budget::class, Note::class], version = 4, exportSchema = false)
 @TypeConverters(NoteTypeConverter::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionDao
@@ -33,6 +33,13 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE budgets ADD COLUMN month INTEGER NOT NULL DEFAULT -1")
+                database.execSQL("ALTER TABLE budgets ADD COLUMN year INTEGER NOT NULL DEFAULT -1")
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -40,7 +47,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "budgetpecker_database"
                 )
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_3_4)
                 .fallbackToDestructiveMigration()
                 .build()
                 INSTANCE = instance

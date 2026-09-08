@@ -526,7 +526,16 @@ fun DashboardScreen(
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
             )
 
-            if (budgets.isEmpty()) {
+            val activeBudgetsForMonth = remember(budgets, selectedDate) {
+                budgets.filter { budget ->
+                    budget.amountLimit > 0.0 &&
+                            budget.month == selectedDate.get(Calendar.MONTH) &&
+                            budget.year == selectedDate.get(Calendar.YEAR) &&
+                            ExpenseCategoryPresetsAll.any { it.name.lowercase() == budget.category.lowercase() }
+                }
+            }
+
+            if (activeBudgetsForMonth.isEmpty()) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -539,7 +548,7 @@ fun DashboardScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "No budgets set. Go to Budgets tab to set your monthly budgets.",
+                            text = "No budgets set for this month. Go to Budgets tab to set your monthly budgets.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
@@ -547,16 +556,16 @@ fun DashboardScreen(
                     }
                 }
             } else {
-                val dashboardBudgetsUnit = remember(budgets) { budgets.take(2) }
+                val dashboardBudgetsUnit = remember(activeBudgetsForMonth) { activeBudgetsForMonth.take(2) }
                 val dashboardBudgetsSpendMap = remember(transactions, dashboardBudgetsUnit, selectedDate) {
-                dashboardBudgetsUnit.associateWith { budget ->
-                    transactions.filter {
-                        !it.isIncome &&
-                                it.category.lowercase() == budget.category.lowercase() &&
-                                isSameMonth(it.dateMillis, selectedDate)
-                    }.sumOf { it.amount }
+                    dashboardBudgetsUnit.associateWith { budget ->
+                        transactions.filter {
+                            !it.isIncome &&
+                                    it.category.lowercase() == budget.category.lowercase() &&
+                                    isSameMonth(it.dateMillis, selectedDate)
+                        }.sumOf { it.amount }
+                    }
                 }
-            }
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     dashboardBudgetsUnit.forEach { budget ->
                         val spentCat = dashboardBudgetsSpendMap[budget] ?: 0.0
@@ -1898,7 +1907,11 @@ fun BudgetScreen(viewModel: MainViewModel, modifier: Modifier = Modifier) {
 
         // Preset Categories budget listing cards matching SS 6
         ExpenseCategoryPresetsAll.forEach { preset ->
-            val matchingBudget = budgets.find { it.category.lowercase() == preset.name.lowercase() }
+            val matchingBudget = budgets.find { 
+                it.category.lowercase() == preset.name.lowercase() &&
+                it.month == selectedDate.get(Calendar.MONTH) &&
+                it.year == selectedDate.get(Calendar.YEAR)
+            }
             val limitDouble = matchingBudget?.amountLimit ?: 0.0
             
             var showCardMenu by remember { mutableStateOf(false) }
@@ -2053,7 +2066,14 @@ fun BudgetScreen(viewModel: MainViewModel, modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
         )
 
-        val activeBudgets = remember(budgets) { budgets.filter { it.amountLimit > 0.0 } }
+        val activeBudgets = remember(budgets, selectedDate) {
+            budgets.filter { budget ->
+                budget.amountLimit > 0.0 &&
+                        budget.month == selectedDate.get(Calendar.MONTH) &&
+                        budget.year == selectedDate.get(Calendar.YEAR) &&
+                        ExpenseCategoryPresetsAll.any { it.name.lowercase() == budget.category.lowercase() }
+            }
+        }
         val budgetSpendMap = remember(transactions, activeBudgets, selectedDate) {
             activeBudgets.associateWith { budget ->
                 transactions.filter {
@@ -2173,7 +2193,11 @@ fun BudgetScreen(viewModel: MainViewModel, modifier: Modifier = Modifier) {
     // Modal budget setter Dialog
     if (showDialogSettingForCategory != null) {
         val categoryName = showDialogSettingForCategory!!
-        val matchingB = budgets.find { it.category.lowercase() == categoryName.lowercase() }
+        val matchingB = budgets.find { 
+            it.category.lowercase() == categoryName.lowercase() &&
+            it.month == selectedDate.get(Calendar.MONTH) &&
+            it.year == selectedDate.get(Calendar.YEAR)
+        }
 
         AlertDialog(
             onDismissRequest = { showDialogSettingForCategory = null },
@@ -2204,7 +2228,9 @@ fun BudgetScreen(viewModel: MainViewModel, modifier: Modifier = Modifier) {
                                     viewModel.addBudget(
                                         Budget(
                                             category = categoryName,
-                                            amountLimit = limitD
+                                            amountLimit = limitD,
+                                            month = selectedDate.get(Calendar.MONTH),
+                                            year = selectedDate.get(Calendar.YEAR)
                                         )
                                     )
                                 }

@@ -18,3 +18,7 @@ debug.keystore
 *.jks
 *.keystore
 budgetpecker-key
+
+# AI/Agent Artifacts
+*.artifact.md
+**/implementation_plan.artifact.md
